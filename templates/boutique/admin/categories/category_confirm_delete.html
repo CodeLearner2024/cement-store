@@ -1,0 +1,77 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Supprimer la catégorie' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">{% trans 'Confirmer la suppression' %}</h5>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        {% blocktrans with name=object.name %}
+                            Êtes-vous sûr de vouloir supprimer la catégorie <strong>{{ name }}</strong> ?
+                        {% endblocktrans %}
+                    </p>
+                    
+                    {% if object.products.exists %}
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                {% trans 'Attention !' %}
+                            </h6>
+                            <p class="mb-0">
+                                {% blocktrans count counter=object.products.count %}
+                                    Cette catégorie contient 1 produit. Si vous la supprimez, ce produit ne sera plus associé à aucune catégorie.
+                                {% plural %}
+                                    Cette catégorie contient {{ counter }} produits. Si vous la supprimez, ces produits ne seront plus associés à aucune catégorie.
+                                {% endblocktrans %}
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-1"></i> {% trans 'Oui, supprimer' %}
+                            </button>
+                        </form>
+                        <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> {% trans 'Non, annuler' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">{% trans 'Détails de la catégorie' %}</h6>
+                </div>
+                <div class="card-body">
+                    <dl class="row mb-0">
+                        <dt class="col-sm-4">{% trans 'Nom' %}</dt>
+                        <dd class="col-sm-8">{{ object.name }}</dd>
+                        
+                        <dt class="col-sm-4">{% trans 'Slug' %}</dt>
+                        <dd class="col-sm-8"><code>{{ object.slug }}</code></dd>
+                        
+                        <dt class="col-sm-4">{% trans 'Date de création' %}</dt>
+                        <dd class="col-sm-8">{{ object.created_at|date:"d/m/Y H:i" }}</dd>
+                        
+                        <dt class="col-sm-4">{% trans 'Dernière modification' %}</dt>
+                        <dd class="col-sm-8">{{ object.updated_at|date:"d/m/Y H:i" }}</dd>
+                        
+                        <dt class="col-sm-4">{% trans 'Nombre de produits' %}</dt>
+                        <dd class="col-sm-8">{{ object.products.count }}</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

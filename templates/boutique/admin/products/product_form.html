@@ -1,0 +1,522 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n static %}
+
+{% block title %}{% if form.instance.pk %}{% trans 'Modifier le produit' %}{% else %}{% trans 'Ajouter un produit' %}{% endif %}{% endblock %}
+
+{% block content_title %}{% if form.instance.pk %}{% trans 'Modifier le produit' %}{% else %}{% trans 'Ajouter un nouveau produit' %}{% endif %}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_product_list' %}">{% trans 'Produits' %}</a></li>
+    <li class="breadcrumb-item active" aria-current="page">
+        {% if form.instance.pk %}{% trans 'Modifier' %}{% else %}{% trans 'Nouveau' %}{% endif %}
+    </li>
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<style>
+    .image-preview {
+        max-width: 100%;
+        max-height: 200px;
+        object-fit: contain;
+        border-radius: 4px;
+    }
+    .image-preview-container {
+        border: 2px dashed #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        background-color: #f8f9fa;
+        transition: all 0.3s ease;
+    }
+    .image-preview-container:hover {
+        border-color: #80bdff;
+        background-color: #f1f8ff;
+    }
+    .image-upload-btn {
+        cursor: pointer;
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        transition: all 0.3s;
+    }
+    .image-upload-btn:hover {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+    .select2-container--bootstrap-5 {
+        width: 100% !important;
+    }
+    .form-section {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    .form-section-header {
+        padding: 1rem 1.25rem;
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+    }
+    .form-section-body {
+        padding: 1.25rem;
+    }
+    .nav-tabs .nav-link {
+        color: #6c757d;
+        font-weight: 500;
+        border: none;
+        padding: 0.75rem 1.25rem;
+        margin-right: 5px;
+    }
+    .nav-tabs .nav-link.active {
+        color: #3c8dbc;
+        background-color: #fff;
+        border-bottom: 2px solid #3c8dbc;
+    }
+    .nav-tabs .nav-link:hover {
+        border-color: transparent;
+        color: #3c8dbc;
+    }
+    .tab-content {
+        background: #fff;
+        padding: 1.5rem;
+        border: 1px solid #dee2e6;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+    }
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    .required-field::after {
+        content: '*';
+        color: #dc3545;
+        margin-left: 4px;
+    }
+    .form-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    .form-control:focus, .form-select:focus, .form-check-input:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(60, 141, 188, 0.25);
+    }
+    .btn-primary {
+        background-color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: #2a5d84;
+        border-color: #265a7f;
+    }
+    .btn-outline-secondary:hover {
+        color: #fff;
+        background-color: #6c757d;
+        border-color: #6c757d;
+    }
+    .invalid-feedback {
+        font-size: 0.8rem;
+    }
+    .form-check-input:checked {
+        background-color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            {% if form.instance.pk %}
+                {% trans 'Modifier le produit' %}
+            {% else %}
+                {% trans 'Ajouter un nouveau produit' %}
+            {% endif %}
+        </h5>
+        <div>
+            {% if form.instance.pk %}
+                <a href="{% url 'boutique:product_detail' pk=form.instance.pk slug=form.instance.slug %}" 
+                   class="btn btn-sm btn-outline-primary me-2" target="_blank">
+                    <i class="fas fa-eye me-1"></i> {% trans 'Voir sur le site' %}
+                </a>
+            {% endif %}
+            <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour' %}
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <div class="row">
+                <!-- Colonne de gauche -->
+                <div class="col-lg-8">
+                    <div class="form-section mb-4">
+                        <div class="form-section-header">
+                            <i class="fas fa-info-circle me-2"></i> {% trans 'Informations générales' %}
+                        </div>
+                        <div class="form-section-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.name.id_for_label }}" class="form-label {% if form.name.field.required %}required-field{% endif %}">
+                                            {{ form.name.label }}
+                                        </label>
+                                        {{ form.name }}
+                                        {% if form.name.help_text %}
+                                            <div class="form-text">{{ form.name.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.name.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.name.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.slug.id_for_label }}" class="form-label {% if form.slug.field.required %}required-field{% endif %}">
+                                            {{ form.slug.label }}
+                                        </label>
+                                        <div class="input-group">
+                                            {{ form.slug }}
+                                            <button class="btn btn-outline-secondary" type="button" id="generate-slug">
+                                                <i class="fas fa-sync-alt"></i>
+                                            </button>
+                                        </div>
+                                        {% if form.slug.help_text %}
+                                            <div class="form-text">{{ form.slug.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.slug.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.slug.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="{{ form.description.id_for_label }}" class="form-label">
+                                    {{ form.description.label }}
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.help_text %}
+                                    <div class="form-text">{{ form.description.help_text }}</div>
+                                {% endif %}
+                                {% if form.description.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.description.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section mb-4">
+                        <div class="form-section-header">
+                            <i class="fas fa-tag me-2"></i> {% trans 'Prix et stock' %}
+                        </div>
+                        <div class="form-section-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.price.id_for_label }}" class="form-label {% if form.price.field.required %}required-field{% endif %}">
+                                            {{ form.price.label }}
+                                        </label>
+                                        <div class="input-group">
+                                            {{ form.price }}
+                                            <span class="input-group-text">€</span>
+                                        </div>
+                                        {% if form.price.help_text %}
+                                            <div class="form-text">{{ form.price.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.price.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.price.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label for="{{ form.stock.id_for_label }}" class="form-label">
+                                            {{ form.stock.label }}
+                                        </label>
+                                        {{ form.stock }}
+                                        {% if form.stock.help_text %}
+                                            <div class="form-text">{{ form.stock.help_text }}</div>
+                                        {% endif %}
+                                        {% if form.stock.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.stock.errors.0 }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch mb-3">
+                                {{ form.available }}
+                                <label class="form-check-label" for="{{ form.available.id_for_label }}">
+                                    {{ form.available.label }}
+                                </label>
+                                {% if form.available.help_text %}
+                                    <div class="form-text">{{ form.available.help_text }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-section mb-4">
+                        <div class="form-section-header">
+                            <i class="fas fa-tags me-2"></i> {% trans 'Catégorie et organisation' %}
+                        </div>
+                        <div class="form-section-body">
+                            <div class="mb-3">
+                                <label for="{{ form.category.id_for_label }}" class="form-label">
+                                    {{ form.category.label }}
+                                </label>
+                                {{ form.category }}
+                                {% if form.category.help_text %}
+                                    <div class="form-text">{{ form.category.help_text }}</div>
+                                {% endif %}
+                                {% if form.category.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.category.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite -->
+                <div class="col-lg-4">
+                    <div class="form-section mb-4">
+                        <div class="form-section-header">
+                            <i class="fas fa-image me-2"></i> {% trans 'Image du produit' %}
+                        </div>
+                        <div class="form-section-body text-center">
+                            <div id="image-preview-container" class="mb-3">
+                                {% if form.instance.image %}
+                                    <img src="{{ form.instance.image.url }}" class="img-fluid rounded image-preview mb-3" id="image-preview">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="checkbox" name="image-clear" id="image-clear">
+                                        <label class="form-check-label" for="image-clear">
+                                            {% trans 'Supprimer l\'image' %}
+                                        </label>
+                                    </div>
+                                {% else %}
+                                    <div class="image-preview-container mb-3">
+                                        <i class="fas fa-image fa-4x text-muted mb-3"></i>
+                                        <p class="text-muted mb-0">{% trans 'Aucune image sélectionnée' %}</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="mb-3">
+                                <label for="{{ form.image.id_for_label }}" class="form-label d-block">
+                                    {{ form.image.label }}
+                                </label>
+                                <input type="file" name="{{ form.image.name }}" id="{{ form.image.id_for_label }}" 
+                                       class="d-none" accept="image/*">
+                                <button type="button" class="btn btn-outline-primary w-100" id="upload-btn">
+                                    <i class="fas fa-upload me-2"></i> {% trans 'Choisir une image' %}
+                                </button>
+                                {% if form.image.help_text %}
+                                    <div class="form-text">{{ form.image.help_text }}</div>
+                                {% endif %}
+                                {% if form.image.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.image.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                    </div>
+                    
+                    <div class="form-section">
+                        <div class="form-section-header">
+                            <i class="fas fa-paper-plane me-2"></i> {% trans 'Publication' %}
+                        </div>
+                        <div class="form-section-body">
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i>
+                                    {% if form.instance.pk %}{% trans 'Mettre à jour le produit' %}{% else %}{% trans 'Créer le produit' %}{% endif %}
+                                </button>
+                                <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_scripts %}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.ckeditor.com/4.16.2/standard/ckeditor.js"></script>
+<script>
+    // Initialiser Select2
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: '{% trans "Sélectionnez une catégorie" %}',
+            allowClear: true
+        });
+        
+        // Initialiser CKEditor
+        if (document.getElementById('{{ form.description.id_for_label }}')) {
+            CKEDITOR.replace('{{ form.description.id_for_label }}', {
+                toolbar: [
+                    { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', '-', 'RemoveFormat'] },
+                    { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Blockquote'] },
+                    { name: 'links', items: ['Link', 'Unlink'] },
+                    { name: 'tools', items: ['Maximize'] },
+                    { name: 'document', items: ['Source'] }
+                ],
+                height: 200,
+                removePlugins: 'elementspath',
+                resize_enabled: false
+            });
+        }
+        
+        // Valider le formulaire avant soumission
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                let isValid = true;
+                
+                // Valider les champs requis
+                const requiredFields = form.querySelectorAll('[required]');
+                requiredFields.forEach(function(field) {
+                    if (!field.value.trim()) {
+                        isValid = false;
+                        const formGroup = field.closest('.mb-3');
+                        if (formGroup) {
+                            formGroup.classList.add('was-validated');
+                        }
+                    }
+                });
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Faire défiler jusqu'au premier champ invalide
+                    const firstInvalid = form.querySelector('.is-invalid');
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            });
+        }
+        
+        // Gérer l'aperçu de l'image
+        const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+        const imagePreview = document.getElementById('image-preview');
+        const imagePreviewContainer = document.querySelector('.image-preview-container');
+        const uploadBtn = document.getElementById('upload-btn');
+        
+        if (uploadBtn) {
+            uploadBtn.addEventListener('click', function() {
+                imageInput.click();
+            });
+        }
+        
+        if (imageInput) {
+            imageInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file) {
+                    // Vérifier la taille du fichier (max 5MB)
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('{% trans "La taille du fichier ne doit pas dépasser 5 Mo" %}');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    // Vérifier le type de fichier
+                    const fileType = file.type.split('/')[0];
+                    if (fileType !== 'image') {
+                        alert('{% trans "Veuillez sélectionner un fichier image valide" %}');
+                        this.value = '';
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        if (imagePreview) {
+                            // Si un aperçu existe déjà, on le met à jour
+                            imagePreview.src = e.target.result;
+                            if (imagePreviewContainer) {
+                                imagePreviewContainer.style.display = 'none';
+                                imagePreview.style.display = 'block';
+                            }
+                        } else if (imagePreviewContainer) {
+                            // Si aucun aperçu n'existe, on en crée un nouveau
+                            const imgPreview = document.createElement('img');
+                            imgPreview.id = 'image-preview';
+                            imgPreview.src = e.target.result;
+                            imgPreview.className = 'img-fluid rounded image-preview mb-3';
+                            
+                            // Ajouter le nouvel aperçu avant le conteneur
+                            imagePreviewContainer.parentNode.insertBefore(imgPreview, imagePreviewContainer);
+                            imagePreviewContainer.style.display = 'none';
+                        }
+                    };
+                    
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            // Gérer la suppression de l'image
+            const imageClear = document.getElementById('image-clear');
+            if (imageClear) {
+                imageClear.addEventListener('change', function() {
+                    if (this.checked && imagePreview) {
+                        imagePreview.style.opacity = '0.5';
+                    } else if (imagePreview) {
+                        imagePreview.style.opacity = '1';
+                    }
+                });
+            }
+        }
+        
+        // Initialisation de l'éditeur de texte riche (si vous utilisez un tel éditeur)
+        // Exemple avec Summernote (décommentez si vous l'utilisez)
+        // $('{{ form.description.auto_id }}').summernote({
+        //     height: 200,
+        //     toolbar: [
+        //         ['style', ['style']],
+        //         ['font', ['bold', 'italic', 'underline', 'clear']],
+        //         ['para', ['ul', 'ol', 'paragraph']],
+        //         ['insert', ['link', 'picture', 'video']],
+        //         ['view', ['fullscreen', 'codeview', 'help']]
+        //     ]
+        // });
+    });
+</script>
+{% endblock %}

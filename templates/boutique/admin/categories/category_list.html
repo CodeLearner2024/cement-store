@@ -1,0 +1,105 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n static %}
+
+{% block title %}{% trans 'Gestion des catégories' %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">{% trans 'Gestion des catégories' %}</h1>
+                <a href="{% url 'boutique:admin_category_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>{% trans 'Ajouter une catégorie' %}
+                </a>
+            </div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_dashboard' %}">{% trans 'Tableau de bord' %}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% trans 'Catégories' %}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            {% if categories %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>{% trans 'Nom' %}</th>
+                                <th>{% trans 'Slug' %}</th>
+                                <th>{% trans 'Produits' %}</th>
+                                <th>{% trans 'Date de création' %}</th>
+                                <th class="text-end">{% trans 'Actions' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for category in categories %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if category.image %}
+                                            <img src="{{ category.image.url }}" alt="{{ category.name }}" class="img-thumbnail me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                        {% else %}
+                                            <div class="bg-light d-flex align-items-center justify-content-center me-3" style="width: 50px; height: 50px;">
+                                                <i class="fas fa-folder text-muted"></i>
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <strong>{{ category.name }}</strong>
+                                            {% if not category.available %}
+                                                <span class="badge bg-secondary ms-2">{% trans 'Non disponible' %}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ category.slug }}</td>
+                                <td>{{ category.products.count }}</td>
+                                <td>{{ category.created_at|date:"d/m/Y" }}</td>
+                                <td class="text-end">
+                                    <div class="btn-group" role="group">
+                                        <a href="{% url 'boutique:admin_category_edit' category.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a href="{% url 'boutique:admin_category_delete' category.pk %}" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-folder-open fa-4x text-muted"></i>
+                    </div>
+                    <h5 class="text-muted">{% trans 'Aucune catégorie trouvée' %}</h5>
+                    <p class="text-muted">{% trans 'Commencez par ajouter votre première catégorie.' %}</p>
+                    <a href="{% url 'boutique:admin_category_add' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-plus me-2"></i>{% trans 'Ajouter une catégorie' %}
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Scripts spécifiques à la page de liste des catégories
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation des tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

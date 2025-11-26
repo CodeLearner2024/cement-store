@@ -1,0 +1,641 @@
+{% extends 'base.html' %}
+{% load static crispy_forms_tags %}
+
+{% block title %}Finaliser ma commande{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    .payment-method {
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .payment-method:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    .payment-method.selected {
+        border-color: #0d6efd !important;
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    .order-summary-item {
+        border-bottom: 1px solid #eee;
+        padding: 1rem 0;
+    }
+    .order-summary-item:last-child {
+        border-bottom: none;
+    }
+    .stripe-payment-element {
+        padding: 1rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        background-color: #f8f9fa;
+    }
+    #card-errors {
+        color: #dc3545;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:home' %}">Accueil</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:cart' %}">Panier</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Commande</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">Finaliser ma commande</h1>
+            <p class="text-muted">Remplissez les informations ci-dessous pour finaliser votre commande</p>
+        </div>
+    </div>
+
+    <form id="checkout-form" method="post" action="{% url 'boutique:checkout' %}" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Informations de livraison -->
+            <div class="col-lg-8">
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0">1. Informations de livraison</h2>
+                    </div>
+                    <div class="card-body">
+                        {% if user.is_authenticated %}
+                            <div class="mb-4">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="use-default-address" checked>
+                                    <label class="form-check-label" for="use-default-address">
+                                        Utiliser mes informations enregistrées
+                                    </label>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div id="shipping-fields">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.first_name|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.last_name|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.email|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.phone|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.address|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.postal_code|as_crispy_field }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.city|as_crispy_field }}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.country|as_crispy_field }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0">2. Méthode de livraison</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="shipping_method" id="shipping-standard" value="standard" checked>
+                                <label class="form-check-label d-flex justify-content-between w-100" for="shipping-standard">
+                                    <span>Livraison standard</span>
+                                    <span>Gratuite</span>
+                                </label>
+                                <small class="text-muted">Livraison sous 3-5 jours ouvrables</small>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="shipping_method" id="shipping-express" value="express">
+                                <label class="form-check-label d-flex justify-content-between w-100" for="shipping-express">
+                                    <span>Livraison express</span>
+                                    <span>9,99 €</span>
+                                </label>
+                                <small class="text-muted">Livraison sous 1-2 jours ouvrables</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0">3. Paiement</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-4">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input payment-option" type="radio" name="payment_method" id="credit-card" value="credit_card" checked>
+                                <label class="form-check-label w-100" for="credit-card">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span>Carte de crédit</span>
+                                        <div>
+                                            <i class="fab fa-cc-visa fa-lg me-2"></i>
+                                            <i class="fab fa-cc-mastercard fa-lg me-2"></i>
+                                            <i class="fab fa-cc-amex fa-lg"></i>
+                                        </div>
+                                    </div>
+                                </label>
+                            </div>
+                            
+                            <div id="credit-card-fields" class="mt-3">
+                                <div id="card-element" class="form-control p-3">
+                                    <!-- Un élément Stripe sera inséré ici. -->
+                                </div>
+                                <div id="card-errors" role="alert"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input payment-option" type="radio" name="payment_method" id="paypal" value="paypal">
+                                <label class="form-check-label d-flex align-items-center" for="paypal">
+                                    <i class="fab fa-paypal fa-2x me-2"></i>
+                                    <span>Payer avec PayPal</span>
+                                </label>
+                            </div>
+                            <div id="paypal-button-container" class="mt-3 d-none">
+                                <!-- Le bouton PayPal sera inséré ici -->
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <div class="form-check">
+                                <input class="form-check-input payment-option" type="radio" name="payment_method" id="bank-transfer" value="bank_transfer">
+                                <label class="form-check-label" for="bank-transfer">
+                                    Virement bancaire
+                                </label>
+                            </div>
+                            <div id="bank-transfer-details" class="mt-3 d-none">
+                                <p class="small text-muted mb-2">Effectuez votre virement à l'adresse suivante :</p>
+                                <p class="mb-1"><strong>Bénéficiaire :</strong> Votre Entreprise</p>
+                                <p class="mb-1"><strong>IBAN :</strong> FR76 XXXX XXXX XXXX XXXX XXXX XXX</p>
+                                <p class="mb-1"><strong>BIC :</strong> XXXXXXXX</p>
+                                <p class="small text-muted mt-2">Votre commande sera traitée dès réception du paiement.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Récapitulatif de la commande -->
+            <div class="col-lg-4">
+                <div class="card mb-4">
+                    <div class="card-header bg-light">
+                        <h2 class="h5 mb-0">Votre commande</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="order-summary">
+                            {% for item in cart_items %}
+                            <div class="order-summary-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="d-flex">
+                                        <img src="{{ item.product.thumbnail_url }}" alt="{{ item.product.name }}" class="img-thumbnail me-3" style="width: 64px; height: 64px; object-fit: cover;">
+                                        <div>
+                                            <h6 class="mb-1">{{ item.product.name }}</h6>
+                                            <p class="text-muted small mb-1">Quantité : {{ item.quantity }}</p>
+                                            {% if item.variation %}
+                                            <p class="text-muted small mb-0">{{ item.variation.name }}</p>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="text-end">
+                                        <p class="mb-0 fw-bold">{{ item.total_price }} €</p>
+                                        <small class="text-muted">{{ item.unit_price }} € l'unité</small>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Sous-total</span>
+                                <span>{{ cart_subtotal }} €</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Livraison</span>
+                                <span id="shipping-cost">Gratuite</span>
+                            </div>
+                            {% if cart_discount > 0 %}
+                            <div class="d-flex justify-content-between mb-2 text-success">
+                                <span>Réduction</span>
+                                <span>-{{ cart_discount }} €</span>
+                            </div>
+                            {% endif %}
+                            <div class="d-flex justify-content-between border-top mt-3 pt-3">
+                                <strong>Total</strong>
+                                <strong id="order-total">{{ cart_total }} €</strong>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="terms" required>
+                                <label class="form-check-label small" for="terms">
+                                    J'accepte les <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">conditions générales de vente</a> *
+                                </label>
+                                <div class="invalid-feedback">
+                                    Vous devez accepter les conditions générales de vente.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button type="submit" id="submit-button" class="btn btn-primary btn-lg w-100 mt-4">
+                            <span class="spinner-border spinner-border-sm d-none" id="spinner" role="status" aria-hidden="true"></span>
+                            <span id="button-text">Payer maintenant</span>
+                        </button>
+                        
+                        <p class="small text-muted mt-3 mb-0">
+                            <i class="fas fa-lock me-1"></i> Paiement sécurisé
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Aide et sécurité -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-light rounded-circle p-3 me-3">
+                                <i class="fas fa-shield-alt text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Paiement sécurisé</h6>
+                                <small class="text-muted">Vos données sont protégées</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="bg-light rounded-circle p-3 me-3">
+                                <i class="fas fa-undo-alt text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Retour facile</h6>
+                                <small class="text-muted">30 jours pour changer d'avis</small>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <div class="bg-light rounded-circle p-3 me-3">
+                                <i class="fas fa-headset text-primary"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-0">Service client</h6>
+                                <small class="text-muted">Assistance 7j/7</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Conditions générales -->
+<div class="modal fade" id="termsModal" tabindex="-1" aria-labelledby="termsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="termsModalLabel">Conditions générales de vente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <h6>1. Objet</h6>
+                <p>Les présentes conditions générales de vente (CGV) s'appliquent à toutes les commandes passées sur le site [Nom du site].</p>
+                
+                <h6 class="mt-4">2. Prix</h6>
+                <p>Les prix sont indiqués en euros toutes taxes comprises (TVA incluse).</p>
+                
+                <h6 class="mt-4">3. Paiement</h6>
+                <p>Le paiement s'effectue par carte bancaire, PayPal ou virement bancaire.</p>
+                
+                <h6 class="mt-4">4. Livraison</h6>
+                <p>Les commandes sont expédiées sous 24 à 48 heures ouvrées après validation du paiement.</p>
+                
+                <h6 class="mt-4">5. Droit de rétractation</h6>
+                <p>Vous disposez d'un délai de 14 jours pour exercer votre droit de rétractation.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Inclure Stripe.js -->
+<script src="https://js.stripe.com/v3/"></script>
+
+<script>
+// Initialiser Stripe avec votre clé publique
+const stripe = Stripe('{{ STRIPE_PUBLIC_KEY }}');
+
+// Créer une instance d'éléments Stripe
+const elements = stripe.elements({
+    locale: 'fr',
+    fonts: [
+        {
+            cssSrc: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap',
+        },
+    ],
+    appearance: {
+        theme: 'stripe',
+        variables: {
+            colorPrimary: '#0d6efd',
+            colorBackground: '#ffffff',
+            colorText: '#212529',
+            colorDanger: '#dc3545',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            spacingUnit: '4px',
+            borderRadius: '4px',
+        },
+    },
+});
+
+// Créer et monter l'élément de carte
+const cardElement = elements.create('card', {
+    style: {
+        base: {
+            iconColor: '#0d6efd',
+            color: '#212529',
+            fontWeight: '400',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            fontSize: '16px',
+            fontSmoothing: 'antialiased',
+            ':-webkit-autofill': {
+                color: '#212529',
+            },
+            '::placeholder': {
+                color: '#6c757d',
+            },
+        },
+        invalid: {
+            iconColor: '#dc3545',
+            color: '#dc3545',
+        },
+    },
+    hidePostalCode: false,
+});
+
+cardElement.mount('#card-element');
+
+// Gestion des erreurs de la carte
+cardElement.on('change', function(event) {
+    const displayError = document.getElementById('card-errors');
+    if (event.error) {
+        displayError.textContent = event.error.message;
+        displayError.style.display = 'block';
+    } else {
+        displayError.textContent = '';
+        displayError.style.display = 'none';
+    }
+});
+
+// Gestion de la soumission du formulaire
+const form = document.getElementById('checkout-form');
+
+if (form) {
+    form.addEventListener('submit', async function(event) {
+        event.preventDefault();
+        
+        // Désactiver le bouton de soumission pour éviter les soumissions multiples
+        const submitButton = document.getElementById('submit-button');
+        const buttonText = document.getElementById('button-text');
+        const spinner = document.getElementById('spinner');
+        
+        submitButton.disabled = true;
+        buttonText.textContent = 'Traitement en cours...';
+        spinner.classList.remove('d-none');
+        
+        // Vérifier si le formulaire est valide
+        if (!form.checkValidity()) {
+            event.stopPropagation();
+            form.classList.add('was-validated');
+            submitButton.disabled = false;
+            buttonText.textContent = 'Payer maintenant';
+            spinner.classList.add('d-none');
+            return;
+        }
+        
+        // Récupérer la méthode de paiement sélectionnée
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        
+        if (!paymentMethod) {
+            // Aucune méthode de paiement sélectionnée
+            const errorElement = document.getElementById('card-errors');
+            errorElement.textContent = 'Veuillez sélectionner une méthode de paiement';
+            errorElement.style.display = 'block';
+            submitButton.disabled = false;
+            buttonText.textContent = 'Payer maintenant';
+            spinner.classList.add('d-none');
+            return;
+        }
+        
+        const paymentMethodValue = paymentMethod.value;
+        
+        // Si c'est un paiement par carte de crédit, utiliser Stripe
+        if (paymentMethodValue === 'credit_card') {
+            try {
+                // Créer un token de paiement avec Stripe
+                const { paymentMethod: stripePaymentMethod, error } = await stripe.createPaymentMethod({
+                    type: 'card',
+                    card: cardElement,
+                    billing_details: {
+                        name: document.getElementById('id_first_name').value + ' ' + document.getElementById('id_last_name').value,
+                        email: document.getElementById('id_email').value,
+                        phone: document.getElementById('id_phone').value,
+                        address: {
+                            line1: document.getElementById('id_address').value,
+                            city: document.getElementById('id_city').value,
+                            postal_code: document.getElementById('id_postal_code').value,
+                            country: 'FR',
+                        },
+                    },
+                });
+                
+                if (error) {
+                    throw error;
+                }
+                
+                // Ajouter le jeton de paiement au formulaire
+                const paymentMethodInput = document.createElement('input');
+                paymentMethodInput.type = 'hidden';
+                paymentMethodInput.name = 'stripe_payment_method';
+                paymentMethodInput.value = stripePaymentMethod.id;
+                form.appendChild(paymentMethodInput);
+                
+                // Soumettre le formulaire
+                form.submit();
+                
+            } catch (error) {
+                // Afficher l'erreur à l'utilisateur
+                const errorElement = document.getElementById('card-errors');
+                errorElement.textContent = error.message;
+                errorElement.style.display = 'block';
+                
+                // Faire défiler jusqu'à l'erreur
+                errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Réactiver le bouton
+                submitButton.disabled = false;
+                buttonText.textContent = 'Payer maintenant';
+                spinner.classList.add('d-none');
+            }
+        } else if (paymentMethodValue === 'paypal') {
+            // Rediriger vers PayPal ou gérer le paiement PayPal
+            window.location.href = "{% url 'boutique:paypal_payment' %}";
+        } else {
+            // Pour les autres méthodes de paiement, soumettre le formulaire normalement
+            form.submit();
+        }
+    });
+}
+
+// Gestion du changement de méthode de paiement
+document.querySelectorAll('.payment-option').forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Masquer tous les conteneurs de méthode de paiement
+        document.querySelectorAll('[id$="-fields"], [id$="-details"]').forEach(container => {
+            container.classList.add('d-none');
+        });
+        
+        // Afficher le conteneur de la méthode sélectionnée
+        const selectedMethod = this.value;
+        if (selectedMethod === 'credit_card') {
+            document.getElementById('credit-card-fields').classList.remove('d-none');
+        } else if (selectedMethod === 'paypal') {
+            document.getElementById('paypal-button-container').classList.remove('d-none');
+        } else if (selectedMethod === 'bank_transfer') {
+            document.getElementById('bank-transfer-details').classList.remove('d-none');
+        }
+    });
+});
+
+// Mise à jour du coût de livraison
+function updateShippingCost() {
+    const standardShipping = document.getElementById('shipping-standard');
+    const expressShipping = document.getElementById('shipping-express');
+    const shippingCostElement = document.getElementById('shipping-cost');
+    const orderTotalElement = document.getElementById('order-total');
+    
+    if (expressShipping.checked) {
+        shippingCostElement.textContent = '9,99 €';
+        // Mettre à jour le total avec les frais de livraison express
+        const total = parseFloat('{{ cart_total_without_shipping }}') + 9.99;
+        orderTotalElement.textContent = total.toFixed(2) + ' €';
+    } else {
+        shippingCostElement.textContent = 'Gratuite';
+        // Mettre à jour le total avec la livraison standard gratuite
+        orderTotalElement.textContent = '{{ cart_total }} €';
+    }
+}
+
+// Gestion du changement de méthode de livraison
+document.querySelectorAll('input[name="shipping_method"]').forEach(radio => {
+    radio.addEventListener('change', updateShippingCost);
+});
+
+// Gestion de l'utilisation de l'adresse par défaut
+const useDefaultAddressCheckbox = document.getElementById('use-default-address');
+const shippingFields = document.getElementById('shipping-fields');
+
+if (useDefaultAddressCheckbox && shippingFields) {
+    useDefaultAddressCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Remplir automatiquement les champs avec les informations de l'utilisateur
+            // Cette partie nécessite que vous ayez une vue qui renvoie les informations de l'utilisateur en JSON
+            fetch('/api/user/shipping-info/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('id_first_name').value = data.first_name || '';
+                    document.getElementById('id_last_name').value = data.last_name || '';
+                    document.getElementById('id_email').value = data.email || '';
+                    document.getElementById('id_phone').value = data.phone || '';
+                    document.getElementById('id_address').value = data.address || '';
+                    document.getElementById('id_postal_code').value = data.postal_code || '';
+                    document.getElementById('id_city').value = data.city || '';
+                    document.getElementById('id_country').value = data.country || 'FR';
+                })
+                .catch(error => {
+                    console.error('Erreur lors de la récupération des informations de livraison :', error);
+                });
+        }
+        // Activer/désactiver les champs en fonction de la case à cocher
+        shippingFields.querySelectorAll('input, select').forEach(field => {
+            field.disabled = this.checked;
+        });
+    });
+    
+    // Désactiver les champs au chargement si la case est cochée
+    if (useDefaultAddressCheckbox.checked) {
+        shippingFields.querySelectorAll('input, select').forEach(field => {
+            field.disabled = true;
+        });
+    }
+}
+
+// Fonction pour afficher des messages d'alerte
+function showAlert(message, type = 'info') {
+    const alertContainer = document.createElement('div');
+    alertContainer.className = `alert alert-${type} alert-dismissible fade show`;
+    alertContainer.role = 'alert';
+    alertContainer.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fermer"></button>
+    `;
+    
+    // Insérer l'alerte avant le formulaire
+    const form = document.getElementById('checkout-form');
+    if (form) {
+        form.parentNode.insertBefore(alertContainer, form);
+        
+        // Fermer automatiquement l'alerte après 5 secondes
+        setTimeout(() => {
+            const alert = bootstrap.Alert.getOrCreateInstance(alertContainer);
+            alert.close();
+        }, 5000);
+    }
+}
+
+// Initialisation de la page
+document.addEventListener('DOMContentLoaded', function() {
+    // Activer les tooltips Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Sélectionner la première méthode de paiement par défaut
+    const firstPaymentMethod = document.querySelector('.payment-option');
+    if (firstPaymentMethod) {
+        firstPaymentMethod.checked = true;
+        firstPaymentMethod.dispatchEvent(new Event('change'));
+    }
+    
+    // Mettre à jour le coût de livraison au chargement
+    updateShippingCost();
+});
+</script>
+{% endblock %}

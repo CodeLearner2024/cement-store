@@ -1,0 +1,570 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}{% trans 'Administration' %}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+<style>
+    :root {
+        --sidebar-width: 250px;
+        --header-height: 60px;
+    }
+    
+    .admin-sidebar {
+        width: var(--sidebar-width);
+        height: calc(100vh - var(--header-height));
+        position: fixed;
+        top: var(--header-height);
+        left: 0;
+        background: #2c3e50;
+        color: #fff;
+        transition: all 0.3s;
+        z-index: 1000;
+        overflow-y: auto;
+    }
+    
+    .admin-main {
+        margin-left: var(--sidebar-width);
+        padding: 20px;
+        min-height: calc(100vh - var(--header-height));
+        background-color: #f8f9fa;
+    }
+    
+    .admin-header {
+        height: var(--header-height);
+        background: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1001;
+        position: fixed;
+        width: 100%;
+        top: 0;
+        left: 0;
+    }
+    
+    .nav-link {
+        color: #b8c7ce;
+        padding: 12px 20px;
+        border-left: 3px solid transparent;
+        transition: all 0.3s;
+    }
+    
+    .nav-link:hover, .nav-link.active {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+        border-left-color: #3c8dbc;
+    }
+    
+    .nav-link i {
+        width: 20px;
+        margin-right: 10px;
+        text-align: center;
+    }
+    
+    .sidebar-header {
+        padding: 15px 20px;
+        background: #1a2226;
+        color: #fff;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    .user-panel {
+        padding: 15px;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+    
+    .user-image {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 10px;
+    }
+    
+    .user-info {
+        display: inline-block;
+        vertical-align: middle;
+    }
+    
+    .user-name {
+        display: block;
+        color: #fff;
+        font-weight: 600;
+    }
+    
+    .user-role {
+        display: block;
+        font-size: 0.8rem;
+        color: #b8c7ce;
+    }
+    
+    .sidebar-menu {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .sidebar-menu > li {
+        position: relative;
+        margin: 0;
+    }
+    
+    .sidebar-menu > li > a {
+        padding: 12px 20px 12px 55px;
+        display: block;
+        color: #b8c7ce;
+        text-decoration: none;
+        transition: all 0.3s;
+    }
+    
+    .sidebar-menu > li > a:hover {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+    }
+    
+    .sidebar-menu > li > a > i {
+        margin-right: 10px;
+        width: 20px;
+        text-align: center;
+    }
+    
+    .sidebar-menu > li.active > a {
+        color: #fff;
+        background: rgba(255,255,255,0.1);
+        border-left: 3px solid #3c8dbc;
+    }
+    
+    .treeview-menu {
+        list-style: none;
+        padding: 0 0 0 25px;
+        margin: 0;
+        display: none;
+    }
+    
+    .treeview-menu > li > a {
+        padding: 8px 20px 8px 15px;
+        display: block;
+        color: #b8c7ce;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: all 0.3s;
+    }
+    
+    .treeview-menu > li > a:hover {
+        color: #fff;
+    }
+    
+    .treeview-menu > li.active > a {
+        color: #fff;
+        font-weight: 600;
+    }
+    
+    .menu-open > .treeview-menu {
+        display: block;
+    }
+    
+    .menu-arrow {
+        float: right;
+        margin-top: 4px;
+        transition: transform 0.3s;
+    }
+    
+    .menu-open > a > .menu-arrow {
+        transform: rotate(90deg);
+    }
+    
+    .content-header {
+        padding: 15px 0;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .content-header h1 {
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+    }
+    
+    .breadcrumb {
+        padding: 0;
+        background: transparent;
+        margin-bottom: 0;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 5px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+    }
+    
+    .card-header {
+        background: #fff;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 15px 20px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    .table th {
+        font-weight: 600;
+        border-top: none;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .table td {
+        vertical-align: middle;
+    }
+    
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+    }
+    
+    .status-badge {
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-active {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-inactive {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .pagination {
+        margin-bottom: 0;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+    
+    .pagination .page-link {
+        color: #3c8dbc;
+    }
+    
+    .pagination .page-link:hover {
+        color: #2a5d84;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #3c8dbc;
+        box-shadow: 0 0 0 0.2rem rgba(60, 141, 188, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+    
+    .btn-primary:hover, .btn-primary:focus {
+        background-color: #2a5d84;
+        border-color: #265a7f;
+    }
+    
+    .btn-outline-primary {
+        color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #3c8dbc;
+        border-color: #3c8dbc;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+    
+    .alert {
+        border: none;
+        border-radius: 4px;
+    }
+    
+    .alert-dismissible .btn-close {
+        padding: 0.75rem 1rem;
+    }
+    
+    /* Responsive */
+    @media (max-width: 992px) {
+        .admin-sidebar {
+            left: -250px;
+        }
+        
+        .admin-sidebar.show {
+            left: 0;
+        }
+        
+        .admin-main {
+            margin-left: 0;
+        }
+        
+        .sidebar-toggle {
+            display: block !important;
+        }
+    }
+    
+    /* Toggle button for mobile */
+    .sidebar-toggle {
+        display: none;
+        position: fixed;
+        right: 20px;
+        top: 15px;
+        z-index: 1002;
+        background: #3c8dbc;
+        color: #fff;
+        border: none;
+        border-radius: 4px;
+        width: 40px;
+        height: 40px;
+        text-align: center;
+        line-height: 40px;
+        cursor: pointer;
+    }
+    
+    .sidebar-toggle i {
+        font-size: 1.2rem;
+    }
+    
+    /* Animation for sidebar */
+    @keyframes slideInLeft {
+        from {
+            transform: translate3d(-100%, 0, 0);
+            visibility: visible;
+        }
+        to {
+            transform: translate3d(0, 0, 0);
+        }
+    }
+    
+    .sidebar-animate {
+        animation-name: slideInLeft;
+        animation-duration: 0.3s;
+    }
+    
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: #555;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Sidebar toggle button -->
+<button class="sidebar-toggle d-lg-none">
+    <i class="fas fa-bars"></i>
+</button>
+
+<!-- Header -->
+<header class="admin-header">
+    <div class="container-fluid">
+        <div class="row align-items-center">
+            <div class="col-6">
+                <a href="{% url 'boutique:admin_dashboard' %}" class="text-decoration-none">
+                    <h4 class="m-0 text-primary">
+                        <i class="fas fa-store me-2"></i> Admin Panel
+                    </h4>
+                </a>
+            </div>
+            <div class="col-6 text-end">
+                <div class="dropdown d-inline-block">
+                    <button class="btn btn-link text-dark text-decoration-none dropdown-toggle" 
+                            type="button" 
+                            id="userDropdown" 
+                            data-bs-toggle="dropdown" 
+                            aria-expanded="false">
+                        <i class="fas fa-user-circle me-1"></i>
+                        {{ request.user.get_full_name|default:request.user.username }}
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                        <li><a class="dropdown-item" href="{% url 'boutique:home' %}">
+                            <i class="fas fa-home me-2"></i> {% trans 'Retour au site' %}
+                        </a></li>
+                        <li><a class="dropdown-item" href="{% url 'account_change_password' %}">
+                            <i class="fas fa-key me-2"></i> {% trans 'Changer le mot de passe' %}
+                        </a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{% url 'account_logout' %}">
+                            <i class="fas fa-sign-out-alt me-2"></i> {% trans 'Déconnexion' %}
+                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Sidebar -->
+<aside class="admin-sidebar">
+    <!-- User Panel -->
+    <div class="user-panel">
+        <div class="d-flex align-items-center">
+            <img src="{% if request.user.profile.avatar %}{{ request.user.profile.avatar.url }}{% else %}{% static 'img/avatar.png' %}{% endif %}" 
+                 class="user-image" 
+                 alt="User Image">
+            <div class="user-info">
+                <span class="user-name">{{ request.user.get_full_name|default:request.user.username }}</span>
+                <span class="user-role">{% if request.user.is_superuser %}Administrateur{% else %}Utilisateur{% endif %}</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Sidebar Menu -->
+    <ul class="sidebar-menu">
+        <li class="{% if 'dashboard' in request.path %}active{% endif %}">
+            <a href="{% url 'boutique:admin_dashboard' %}">
+                <i class="fas fa-tachometer-alt"></i> <span>{% trans 'Tableau de bord' %}</span>
+            </a>
+        </li>
+        
+        <li class="{% if 'produits' in request.path or 'products' in request.path %}active{% endif %}">
+            <a href="{% url 'boutique:admin_product_list' %}">
+                <i class="fas fa-box"></i> <span>{% trans 'Produits' %}</span>
+            </a>
+        </li>
+        
+        <li class="{% if 'categories' in request.path %}active{% endif %}">
+            <a href="{% url 'boutique:admin_category_list' %}">
+                <i class="fas fa-tags"></i> <span>{% trans 'Catégories' %}</span>
+            </a>
+        </li>
+        
+        <li class="{% if 'commandes' in request.path or 'orders' in request.path %}active{% endif %}">
+            <a href="{% url 'boutique:admin_order_list' %}">
+                <i class="fas fa-shopping-cart"></i> <span>{% trans 'Commandes' %}</span>
+                <span class="badge bg-danger float-end">{{ pending_orders_count|default:0 }}</span>
+            </a>
+        </li>
+        
+        <li class="{% if 'utilisateurs' in request.path or 'users' in request.path %}active{% endif %}">
+            <a href="{% url 'boutique:admin_user_list' %}">
+                <i class="fas fa-users"></i> <span>{% trans 'Utilisateurs' %}</span>
+            </a>
+        </li>
+        
+        <li class="mt-4">
+            <a href="{% url 'boutique:home' %}" target="_blank">
+                <i class="fas fa-external-link-alt"></i> <span>{% trans 'Voir le site' %}</span>
+            </a>
+        </li>
+    </ul>
+</aside>
+
+<!-- Main Content -->
+<main class="admin-main">
+    <div class="container-fluid">
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% block content_header %}
+        <div class="content-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1>{% block content_title %}{% endblock %}</h1>
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb mb-0">
+                        <li class="breadcrumb-item"><a href="{% url 'boutique:admin_dashboard' %}">{% trans 'Tableau de bord' %}</a></li>
+                        {% block breadcrumb %}{% endblock %}
+                    </ol>
+                </nav>
+            </div>
+        </div>
+        {% endblock %}
+        
+        {% block admin_content %}
+        {% endblock %}
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bs5-lightbox@1.8.3/dist/index.bundle.min.js"></script>
+
+<script>
+    // Initialize Select2
+    $(document).ready(function() {
+        $('.select2').select2({
+            theme: 'bootstrap-5',
+            width: '100%'
+        });
+        
+        // Toggle sidebar on mobile
+        $('.sidebar-toggle').on('click', function() {
+            $('.admin-sidebar').toggleClass('show');
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        $(document).on('click', function(event) {
+            if ($(window).width() <= 992) {
+                if (!$(event.target).closest('.admin-sidebar, .sidebar-toggle').length) {
+                    $('.admin-sidebar').removeClass('show');
+                }
+            }
+        });
+        
+        // Prevent dropdown from closing when clicking inside
+        $('.dropdown-menu').on('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        // Initialize tooltips
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+    
+    // Auto-hide alerts after 5 seconds
+    $(document).ready(function() {
+        setTimeout(function() {
+            $('.alert').fadeOut('slow', function() {
+                $(this).remove();
+            });
+        }, 5000);
+    });
+</script>
+
+{% block page_scripts %}{% endblock %}
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n humanize %}
+
+{% block title %}{% trans 'Supprimer la commande' %} #{{ order.id|stringformat:"06d" }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">{% trans 'Confirmer la suppression' %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% trans 'Attention ! Cette action est irréversible.' %}
+                        </h6>
+                        <p class="mb-0">
+                            {% trans 'Êtes-vous sûr de vouloir supprimer cette commande ? Toutes les données associées seront également supprimées.' %}
+                        </p>
+                    </div>
+                    
+                    <!-- Détails de la commande -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">{% trans 'Détails de la commande' %}</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-5">{% trans 'N° de commande' %}</dt>
+                                        <dd class="col-sm-7">#{{ order.id|stringformat:"06d" }}</dd>
+                                        
+                                        <dt class="col-sm-5">{% trans 'Date' %}</dt>
+                                        <dd class="col-sm-7">{{ order.created_at|date:"d/m/Y H:i" }}</dd>
+                                        
+                                        <dt class="col-sm-5">{% trans 'Client' %}</dt>
+                                        <dd class="col-sm-7">
+                                            {% if order.user %}
+                                                <a href="{% url 'boutique:admin_user_detail' order.user.pk %}" class="text-decoration-none">
+                                                    {{ order.get_full_name }}
+                                                </a>
+                                            {% else %}
+                                                {{ order.get_full_name }}
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row mb-0">
+                                        <dt class="col-sm-5">{% trans 'Statut' %}</dt>
+                                        <dd class="col-sm-7">
+                                            <span class="badge {% if order.status == 'en_attente' %}bg-warning text-dark
+                                                            {% elif order.status == 'payee' %}bg-info
+                                                            {% elif order.status == 'en_preparation' %}bg-primary
+                                                            {% elif order.status == 'expediee' or order.status == 'en_livraison' %}bg-info
+                                                            {% elif order.status == 'livree' or order.status == 'recuperee' %}bg-success
+                                                            {% elif order.status == 'annulee' %}bg-danger
+                                                            {% else %}bg-secondary{% endif %}">
+                                                {{ order.get_status_display }}
+                                            </span>
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">{% trans 'Paiement' %}</dt>
+                                        <dd class="col-sm-7">
+                                            {% if order.paid %}
+                                                <span class="text-success"><i class="fas fa-check-circle me-1"></i> {% trans 'Payée' %}</span>
+                                            {% else %}
+                                                <span class="text-danger"><i class="fas fa-times-circle me-1"></i> {% trans 'Non payée' %}</span>
+                                            {% endif %}
+                                        </dd>
+                                        
+                                        <dt class="col-sm-5">{% trans 'Total' %}</dt>
+                                        <dd class="col-sm-7"><strong>{{ order.get_total_cost|floatformat:2 }} €</strong></dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Articles de la commande -->
+                    <div class="card mb-4">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">{% trans 'Articles commandés' %}</h6>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-sm mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>{% trans 'Produit' %}</th>
+                                            <th class="text-center">{% trans 'Qté' %}</th>
+                                            <th class="text-end">{% trans 'Prix' %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in order.items.all %}
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    {% if item.product.image %}
+                                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" 
+                                                             class="img-thumbnail me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                    {% endif %}
+                                                    <div>
+                                                        <div class="fw-medium">{{ item.product.name }}</div>
+                                                        <small class="text-muted">{{ item.product.sku }}</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="text-center">{{ item.quantity }}</td>
+                                            <td class="text-end">{{ item.get_cost|floatformat:2 }} €</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-1"></i> {% trans 'Oui, supprimer cette commande' %}
+                            </button>
+                        </form>
+                        <a href="{% url 'boutique:admin_order_detail' order.pk %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> {% trans 'Non, annuler' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Désactiver le double-clic sur le bouton de soumission pour éviter les envois multiples
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                const submitButton = this.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {% trans "Suppression en cours..." %}';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

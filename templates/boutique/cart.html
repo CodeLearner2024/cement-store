@@ -1,0 +1,714 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mon panier{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">Votre panier</h1>
+                <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Continuer mes achats
+                </a>
+            </div>
+            
+            {% if cart_items %}
+                <div class="card mb-4">
+                    <div class="card-body p-0">
+                        <!-- En-tête du tableau -->
+                        <div class="row d-none d-md-flex bg-light p-3 border-bottom">
+                            <div class="col-md-5">
+                                <strong>Produit</strong>
+                            </div>
+                            <div class="col-md-2 text-center">
+                                <strong>Prix unitaire</strong>
+                            </div>
+                            <div class="col-md-3 text-center">
+                                <strong>Quantité</strong>
+                            </div>
+                            <div class="col-md-2 text-end">
+                                <strong>Total</strong>
+                            </div>
+                        </div>
+                        
+                        <!-- Liste des articles -->
+                        <div id="cart-items-container">
+                            {% include 'boutique/partials/cart_items.html' with cart_items=cart_items %}
+                        </div>
+                    </div>
+                    
+                    <!-- Actions du panier -->
+                    <div class="card-footer bg-white">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Continuer mes achats
+                            </a>
+                            <form action="{% url 'boutique:clear_cart' %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger" {% if not cart_items %}disabled{% endif %}>
+                                    <i class="far fa-trash-alt me-2"></i>Vider le panier
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Code promo -->
+                <div class="card mb-4">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Code promo</h5>
+                        <form class="row g-2">
+                            <div class="col">
+                                <input type="text" class="form-control" placeholder="Entrez votre code promo">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-outline-primary">Appliquer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Paiement sécurisé -->
+                <div class="card mb-4 d-none d-lg-block">
+                    <div class="card-body">
+                        <h5 class="card-title mb-3">Paiement sécurisé</h5>
+                        <div class="d-flex flex-wrap gap-2">
+                            <img src="{% static 'img/payment/visa.png' %}" alt="Visa" height="30" class="me-2">
+                            <img src="{% static 'img/payment/mastercard.png' %}" alt="Mastercard" height="30" class="me-2">
+                            <img src="{% static 'img/payment/paypal.png' %}" alt="PayPal" height="30" class="me-2">
+                            <img src="{% static 'img/payment/apple-pay.png' %}" alt="Apple Pay" height="30" class="me-2">
+                            <img src="{% static 'img/payment/google-pay.png' %}" alt="Google Pay" height="30">
+                        </div>
+                    </div>
+                </div>
+                
+            {% else %}
+                <!-- Panier vide -->
+                <div class="text-center py-5">
+                    <div class="mb-4">
+                        <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
+                        <h3>Votre panier est vide</h3>
+                        <p class="text-muted">Parcourez nos catégories pour découvrir nos produits</p>
+                    </div>
+                    <a href="{% url 'boutique:product_list' %}" class="btn btn-primary">
+                        <i class="fas fa-store me-2"></i>Découvrir la boutique
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+        
+        {% if cart_items %}
+        <!-- Récapitulatif de commande -->
+        <div class="col-lg-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">Récapitulatif de commande</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Sous-total ({{ cart.total_quantity }} article{% if cart.total_quantity > 1 %}s{% endif %})</span>
+                        <span>{{ cart.get_subtotal }} €</span>
+                    </div>
+                    
+                    {% if cart.discount_amount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 text-success">
+                        <span>Réduction ({{ cart.discount_code }})</span>
+                        <span>-{{ cart.discount_amount }} €</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mb-2">
+                        <span>Frais de livraison</span>
+                        <span>
+                            {% if cart.get_shipping_cost == 0 %}
+                                <span class="text-success">Gratuit</span>
+                            {% else %}
+                                {{ cart.get_shipping_cost }} €
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    {% if cart.tax_amount > 0 %}
+                    <div class="d-flex justify-content-between mb-2 small text-muted">
+                        <span>TVA ({{ cart.tax_rate }}%)</span>
+                        <span>{{ cart.tax_amount }} €</span>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="d-flex justify-content-between mb-3">
+                        <strong>Total TTC</strong>
+                        <strong class="h5 mb-0 text-primary">{{ cart.get_total }} €</strong>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        {% if user.is_authenticated %}
+                            <button type="button" class="btn btn-primary btn-lg" id="checkout-button" onclick="validateCheckout()">
+                                Passer la commande
+                            </button>
+                            <a href="{% url 'boutique:checkout' %}?express=1" class="btn btn-outline-primary" id="paypal-button">
+                                <i class="fab fa-paypal me-2"></i>Payer avec PayPal
+                            </a>
+                        {% else %}
+                            <a href="{% url 'account_login' %}?next={% url 'boutique:checkout' %}" class="btn btn-primary btn-lg">
+                                Se connecter pour commander
+                            </a>
+                            <p class="small text-muted text-center mt-2">
+                                Nouveau client ? <a href="{% url 'account_signup' %}">Créer un compte</a>
+                            </p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="termsCheck">
+                        <label class="form-check-label small" for="termsCheck">
+                            J'accepte les <a href="#" class="text-decoration-none">conditions générales de vente</a>
+                        </label>
+                        <div id="termsError" class="invalid-feedback d-none">
+                            Vous devez accepter les conditions générales de vente pour continuer.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Garanties -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle p-2 me-3">
+                            <i class="fas fa-shield-alt text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Paiement sécurisé</h6>
+                            <small class="text-muted">Vos données sont protégées</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle p-2 me-3">
+                            <i class="fas fa-undo-alt text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Retour facile</h6>
+                            <small class="text-muted">30 jours pour changer d'avis</small>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center">
+                        <div class="bg-light rounded-circle p-2 me-3">
+                            <i class="fas fa-headset text-primary"></i>
+                        </div>
+                        <div>
+                            <h6 class="mb-0">Service client</h6>
+                            <small class="text-muted">Assistance 7j/7</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Paiement sécurisé (version mobile) -->
+            <div class="card d-lg-none">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Paiement sécurisé</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <img src="{% static 'img/payment/visa.png' %}" alt="Visa" height="25" class="me-2">
+                        <img src="{% static 'img/payment/mastercard.png' %}" alt="Mastercard" height="25" class="me-2">
+                        <img src="{% static 'img/payment/paypal.png' %}" alt="PayPal" height="25" class="me-2">
+                        <img src="{% static 'img/payment/apple-pay.png' %}" alt="Apple Pay" height="25" class="me-2">
+                        <img src="{% static 'img/payment/google-pay.png' %}" alt="Google Pay" height="25">
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Produits recommandés -->
+    {% if recommended_products %}
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 class="mb-4">Vous aimerez aussi</h3>
+            <div class="row">
+                {% for product in recommended_products %}
+                <div class="col-lg-3 col-md-4 col-6 mb-4">
+                    <div class="card h-100">
+                        <a href="{{ product.get_absolute_url }}" class="text-decoration-none">
+                            <div class="position-relative">
+                                {% if product.image %}
+                                    <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain; padding: 10px;">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/300x300" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: contain; padding: 10px;">
+                                {% endif %}
+                                
+                                {% if product.discount_percentage > 0 %}
+                                    <span class="position-absolute top-0 end-0 m-2 badge bg-danger">-{{ product.discount_percentage }}%</span>
+                                {% endif %}
+                            </div>
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-dark mb-1">{{ product.name|truncatechars:40 }}</h5>
+                                <div class="mb-2">
+                                    <span class="text-warning">
+                                        {% for i in "12345" %}
+                                            {% if forloop.counter <= product.average_rating|default:0 %}
+                                                <i class="fas fa-star"></i>
+                                            {% else %}
+                                                <i class="far fa-star"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                        <small class="text-muted">({{ product.reviews.count }})</small>
+                                    </span>
+                                </div>
+                                <p class="card-text">
+                                    {% if product.discount_percentage > 0 %}
+                                        <span class="text-danger fw-bold">{{ product.get_discounted_price }} €</span>
+                                        <small class="text-decoration-line-through text-muted ms-1">{{ product.price }} €</small>
+                                    {% else %}
+                                        <span class="fw-bold">{{ product.price }} €</span>
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </a>
+                        <div class="card-footer bg-white border-0 pt-0">
+                            <form action="{% url 'boutique:add_to_cart' product_id=product.id %}" method="post" class="add-to-cart-form">
+                                {% csrf_token %}
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="btn btn-outline-primary w-100" {% if not product.in_stock %}disabled{% endif %}>
+                                    <i class="fas fa-cart-plus me-2"></i>Ajouter au panier
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Fonction pour valider le formulaire de commande
+    function validateCheckout() {
+        const termsCheckbox = document.getElementById('termsCheck');
+        const termsError = document.getElementById('termsError');
+        
+        if (!termsCheckbox.checked) {
+            // Afficher l'erreur
+            termsError.classList.remove('d-none');
+            termsCheckbox.classList.add('is-invalid');
+            
+            // Faire défiler jusqu'à l'erreur
+            termsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+        
+        // Si tout est valide, rediriger vers la page de paiement
+        window.location.href = "{% url 'boutique:checkout' %}";
+        return true;
+    }
+    
+    // Ajouter un écouteur d'événement pour masquer l'erreur lorsque la case est cochée
+    document.getElementById('termsCheck').addEventListener('change', function() {
+        if (this.checked) {
+            this.classList.remove('is-invalid');
+            document.getElementById('termsError').classList.add('d-none');
+        }
+    });
+    
+    // Valider également pour le bouton PayPal
+    document.addEventListener('DOMContentLoaded', function() {
+        const paypalButton = document.getElementById('paypal-button');
+        if (paypalButton) {
+            paypalButton.addEventListener('click', function(e) {
+                const termsCheckbox = document.getElementById('termsCheck');
+                if (!termsCheckbox.checked) {
+                    e.preventDefault();
+                    const termsError = document.getElementById('termsError');
+                    termsError.classList.remove('d-none');
+                    termsCheckbox.classList.add('is-invalid');
+                    termsError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
+        }
+    });
+document.addEventListener('DOMContentLoaded', function() {
+    // Gestion de la quantité
+    document.querySelectorAll('.quantity-increase').forEach(button => {
+        button.addEventListener('click', function() {
+            const input = this.closest('.input-group').querySelector('.quantity-input');
+            const max = parseInt(input.getAttribute('max')) || 99;
+            let value = parseInt(input.value) || 1;
+            
+            if (value < max) {
+                input.value = value + 1;
+                updateCartItem(input);
+            }
+        });
+    });
+    
+    document.querySelectorAll('.quantity-decrease').forEach(button => {
+        button.addEventListener('click', function() {
+            const input = this.closest('.input-group').querySelector('.quantity-input');
+            let value = parseInt(input.value) || 1;
+            
+            if (value > 1) {
+                input.value = value - 1;
+                updateCartItem(input);
+            }
+        });
+    });
+    
+    // Mise à jour de la quantité via le champ de saisie
+    document.querySelectorAll('.quantity-input').forEach(input => {
+        input.addEventListener('change', function() {
+            updateCartItem(this);
+        });
+    });
+    
+    // Fonction pour mettre à jour la quantité d'un article
+    function updateCartItem(input) {
+        const form = input.closest('.update-quantity-form');
+        const itemId = input.getAttribute('data-item-id');
+        const quantity = parseInt(input.value);
+        const max = parseInt(input.getAttribute('max')) || 99;
+        
+        // Validation de la quantité
+        if (isNaN(quantity) || quantity < 1) {
+            input.value = 1;
+        } else if (quantity > max) {
+            input.value = max;
+        }
+        
+        // Désactiver le champ pendant la requête
+        const originalValue = input.value;
+        input.disabled = true;
+        
+        // Créer un formulaire pour la requête
+        const formData = new FormData(form);
+        
+        // Envoyer la requête AJAX
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFTToken': formData.get('csrfmiddlewaretoken')
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mettre à jour les totaux
+                updateCartTotals(data);
+                
+                // Mettre à jour le compteur du panier dans la navigation
+                const cartCountElements = document.querySelectorAll('.cart-count');
+                cartCountElements.forEach(element => {
+                    element.textContent = data.cart_total_quantity;
+                });
+                
+                // Afficher un message de succès
+                showAlert('La quantité a été mise à jour', 'success');
+            } else {
+                // En cas d'erreur, restaurer la valeur précédente
+                input.value = originalValue;
+                showAlert('Une erreur est survenue lors de la mise à jour', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            input.value = originalValue;
+            showAlert('Une erreur est survenue', 'danger');
+        })
+        .finally(() => {
+            // Réactiver le champ
+            input.disabled = false;
+        });
+    }
+    
+    // Gestion de la suppression d'un article avec confirmation
+    document.addEventListener('submit', function(e) {
+        if (!e.target.matches('.remove-item-form')) return;
+        
+        e.preventDefault();
+        
+        const form = e.target;
+        const itemId = form.getAttribute('action').split('/').filter(Boolean).pop();
+        const itemName = form.closest('.cart-item').querySelector('h6 a').textContent.trim();
+        
+        // Afficher une boîte de dialogue de confirmation
+        Swal.fire({
+            title: 'Supprimer l\'article',
+            text: `Êtes-vous sûr de vouloir supprimer "${itemName}" de votre panier ?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Oui, supprimer',
+            cancelButtonText: 'Annuler',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Récupérer le token CSRF
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                
+                // Envoyer la requête de suppression
+                fetch(form.action, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrftoken
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Mettre à jour l'interface utilisateur
+                        const cartItem = document.querySelector(`.cart-item[data-item-id="${data.item_id}"]`);
+                        if (cartItem) {
+                            cartItem.style.transition = 'all 0.3s ease';
+                            cartItem.style.opacity = '0';
+                            cartItem.style.transform = 'translateX(-100%)';
+                            
+                            // Supprimer l'élément après l'animation
+                            setTimeout(() => {
+                                cartItem.remove();
+                                
+                                // Mettre à jour les totaux
+                                if (data.is_cart_empty) {
+                                    // Si le panier est vide, recharger la page
+                                    window.location.reload();
+                                } else {
+                                    // Sinon, mettre à jour les totaux
+                                    if (data.html) {
+                                        document.getElementById('cart-items-container').innerHTML = data.html;
+                                    }
+                                    
+                                    // Mettre à jour le nombre d'articles dans le panier
+                                    const cartCount = document.querySelector('.cart-count');
+                                    if (cartCount) {
+                                        cartCount.textContent = data.item_count;
+                                    }
+                                    
+                                    // Mettre à jour le total du panier
+                                    const cartTotal = document.querySelector('.cart-total');
+                                    if (cartTotal) {
+                                        cartTotal.textContent = `${data.cart_total} €`;
+                                    }
+                                    
+                                    // Afficher un message de succès
+                                    Swal.fire({
+                                        title: 'Article supprimé',
+                                        text: data.message,
+                                        icon: 'success',
+                                        toast: true,
+                                        position: 'top-end',
+                                        showConfirmButton: false,
+                                        timer: 3000
+                                    });
+                                }
+                            }, 300);
+                        }
+                    } else {
+                        throw new Error(data.message || 'Une erreur est survenue');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    Swal.fire({
+                        title: 'Erreur',
+                        text: 'Une erreur est survenue lors de la suppression de l\'article.',
+                        icon: 'error',
+                        confirmButtonText: 'OK'
+                    });
+                });
+            }
+        });
+    });
+
+    // Gestion des formulaires de mise à jour de quantité
+    document.querySelectorAll('.update-quantity-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const button = this.querySelector('button[type="submit"]');
+            const originalHtml = button.innerHTML;
+            
+            // Afficher un indicateur de chargement
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFTToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Supprimer l'élément du DOM
+                        const itemElement = this.closest('.cart-item');
+                        itemElement.style.opacity = '0';
+                        setTimeout(() => {
+                            itemElement.remove();
+                            
+                            // Mettre à jour les totaux
+                            updateCartTotals(data);
+                            
+                            // Mettre à jour le compteur du panier dans la navigation
+                            const cartCountElements = document.querySelectorAll('.cart-count');
+                            cartCountElements.forEach(element => {
+                                element.textContent = data.cart_total_quantity;
+                            });
+                            
+                            // Si le panier est vide, recharger la page
+                            if (data.cart_total_quantity === 0) {
+                                window.location.reload();
+                            }
+                        }, 300);
+                        
+                        // Afficher un message de succès
+                        showAlert('L\'article a été supprimé de votre panier', 'success');
+                    } else {
+                        throw new Error('Erreur lors de la suppression');
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                    showAlert('Une erreur est survenue lors de la suppression', 'danger');
+                    button.disabled = false;
+                    button.innerHTML = originalHtml;
+                });
+        });
+    });
+    
+    // Fonction pour mettre à jour les totaux du panier
+    function updateCartTotals(data) {
+        // Mettre à jour le sous-total
+        const subtotalElement = document.querySelector('[data-subtotal]');
+        if (subtotalElement) {
+            subtotalElement.textContent = `${data.subtotal} €`;
+        }
+        
+        // Mettre à jour la réduction
+        const discountElement = document.querySelector('[data-discount]');
+        if (discountElement) {
+            if (data.discount_amount > 0) {
+                discountElement.innerHTML = `-${data.discount_amount} €`;
+                discountElement.closest('.d-flex').style.display = 'flex';
+            } else {
+                discountElement.closest('.d-flex').style.display = 'none';
+            }
+        }
+        
+        // Mettre à jour les frais de livraison
+        const shippingElement = document.querySelector('[data-shipping]');
+        if (shippingElement) {
+            if (data.shipping_cost > 0) {
+                shippingElement.textContent = `${data.shipping_cost} €`;
+            } else {
+                shippingElement.innerHTML = '<span class="text-success">Gratuit</span>';
+            }
+        }
+        
+        // Mettre à jour la TVA
+        const taxElement = document.querySelector('[data-tax]');
+        if (taxElement) {
+            if (data.tax_amount > 0) {
+                taxElement.textContent = `${data.tax_amount} €`;
+                taxElement.closest('.d-flex').style.display = 'flex';
+            } else {
+                taxElement.closest('.d-flex').style.display = 'none';
+            }
+        }
+        
+        // Mettre à jour le total
+        const totalElement = document.querySelector('[data-total]');
+        if (totalElement) {
+            totalElement.textContent = `${data.total} €`;
+        }
+        
+        // Mettre à jour le nombre d'articles
+        const itemCountElement = document.querySelector('[data-item-count]');
+        if (itemCountElement) {
+            itemCountElement.textContent = `${data.cart_total_quantity} article${data.cart_total_quantity > 1 ? 's' : ''}`;
+        }
+    }
+    
+    // Fonction pour afficher des messages d'alerte
+    function showAlert(message, type = 'info') {
+        // Créer l'élément d'alerte
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Ajouter l'alerte en haut de la page
+        const container = document.querySelector('.container.py-5');
+        if (container) {
+            container.prepend(alertDiv);
+            
+            // Supprimer l'alerte après 5 secondes
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                if (alert) {
+                    alert.close();
+                }
+            }, 5000);
+        }
+    }
+    
+    // Gestion du formulaire de code promo
+    const promoForm = document.querySelector('.promo-code-form');
+    if (promoForm) {
+        promoForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const input = this.querySelector('input[type="text"]');
+            const button = this.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            const code = input.value.trim();
+            
+            if (!code) return;
+            
+            // Afficher un indicateur de chargement
+            button.disabled = true;
+            button.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>';
+            
+            // Simuler une requête AJAX (à remplacer par un appel réel)
+            setTimeout(() => {
+                // Ici, vous devriez faire un appel AJAX vers votre serveur
+                // pour vérifier et appliquer le code promo
+                
+                // Exemple de réponse simulée
+                const success = Math.random() > 0.5; // 50% de chance de succès pour l'exemple
+                
+                if (success) {
+                    showAlert('Le code promo a été appliqué avec succès !', 'success');
+                    // Mettre à jour les totaux ici avec les données renvoyées par le serveur
+                } else {
+                    showAlert('Code promo invalide ou expiré', 'danger');
+                }
+                
+                // Réactiver le bouton
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }, 1000);
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,603 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n humanize %}
+
+{% block title %}{% trans 'Profil utilisateur' %} - {{ user.get_full_name|default:user.username }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .profile-header {
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+    }
+    .profile-avatar {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 5px solid #fff;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .stat-card {
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        height: 100%;
+    }
+    .stat-icon {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+    .nav-tabs .nav-link {
+        border: none;
+        color: #6c757d;
+        font-weight: 500;
+        padding: 0.75rem 1.25rem;
+    }
+    .nav-tabs .nav-link.active {
+        color: #0d6efd;
+        border-bottom: 3px solid #0d6efd;
+        background: none;
+    }
+    .activity-item {
+        position: relative;
+        padding-left: 2rem;
+        padding-bottom: 1.5rem;
+        border-left: 2px solid #e9ecef;
+        margin-left: 1rem;
+    }
+    .activity-item:last-child {
+        border-left-color: transparent;
+    }
+    .activity-item::before {
+        content: '';
+        position: absolute;
+        left: -9px;
+        top: 0;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: #0d6efd;
+        border: 3px solid #fff;
+    }
+    .activity-item.completed::before {
+        background-color: #198754;
+    }
+    .activity-item.cancelled::before {
+        background-color: #dc3545;
+    }
+    .activity-item.pending::before {
+        background-color: #ffc107;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- En-tête du profil -->
+    <div class="profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-auto text-center text-md-start">
+                {% if user.avatar %}
+                    <img src="{{ user.avatar.url }}" alt="{{ user.get_full_name }}" class="profile-avatar mb-3 mb-md-0">
+                {% else %}
+                    <div class="profile-avatar bg-primary text-white d-flex align-items-center justify-content-center mb-3 mb-md-0">
+                        <span style="font-size: 3rem;">{{ user.get_initials }}</span>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col-md">
+                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center">
+                    <div>
+                        <h2 class="mb-1">{{ user.get_full_name|default:user.username }}</h2>
+                        <div class="mb-2">
+                            {% if user.is_superuser %}
+                                <span class="badge bg-danger me-1">{% trans 'Super Admin' %}</span>
+                            {% elif user.is_staff %}
+                                <span class="badge bg-primary me-1">{% trans 'Staff' %}</span>
+                            {% else %}
+                                <span class="badge bg-secondary me-1">{% trans 'Client' %}</span>
+                            {% endif %}
+                            
+                            {% if user.is_active %}
+                                <span class="badge bg-success">{% trans 'Actif' %}</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">{% trans 'Inactif' %}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="mt-2 mt-md-0">
+                        <a href="{% url 'boutique:admin_user_edit' user.pk %}" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-edit me-1"></i> {% trans 'Modifier' %}
+                        </a>
+                        <a href="{% url 'boutique:admin_user_delete' user.pk %}" class="btn btn-outline-danger">
+                            <i class="fas fa-trash-alt me-1"></i> {% trans 'Supprimer' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Colonne de gauche -->
+        <div class="col-lg-4">
+            <!-- Informations de base -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i> {% trans 'Informations personnelles' %}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt>{% trans 'Nom d\'utilisateur' %}</dt>
+                        <dd class="mb-3">{{ user.username }}</dd>
+                        
+                        <dt>{% trans 'Email' %}</dt>
+                        <dd class="mb-3">
+                            <a href="mailto:{{ user.email }}" class="text-decoration-none">
+                                {{ user.email }}
+                            </a>
+                            {% if user.email_verified %}
+                                <span class="badge bg-success ms-2">{% trans 'Vérifié' %}</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark ms-2">{% trans 'Non vérifié' %}</span>
+                            {% endif %}
+                        </dd>
+                        
+                        {% if user.phone %}
+                        <dt>{% trans 'Téléphone' %}</dt>
+                        <dd class="mb-3">
+                            <a href="tel:{{ user.phone }}" class="text-decoration-none">
+                                {{ user.phone }}
+                            </a>
+                            {% if user.phone_verified %}
+                                <span class="badge bg-success ms-2">{% trans 'Vérifié' %}</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark ms-2">{% trans 'Non vérifié' %}</span>
+                            {% endif %}
+                        </dd>
+                        {% endif %}
+                        
+                        <dt>{% trans 'Date d\'inscription' %}</dt>
+                        <dd class="mb-3">
+                            {{ user.date_joined|date:"d/m/Y H:i" }}
+                            <small class="text-muted">({{ user.date_joined|timesince }} {% trans 'depuis' %})</small>
+                        </dd>
+                        
+                        <dt>{% trans 'Dernière connexion' %}</dt>
+                        <dd class="mb-0">
+                            {% if user.last_login %}
+                                {{ user.last_login|date:"d/m/Y H:i" }}
+                                <small class="text-muted">({{ user.last_login|timesince }} {% trans 'depuis' %})</small>
+                            {% else %}
+                                <span class="text-muted">{% trans 'Jamais connecté' %}</span>
+                            {% endif %}
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+            
+            <!-- Adresses -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-map-marker-alt me-2"></i> {% trans 'Adresses' %}
+                    </h5>
+                    <a href="#" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-1"></i> {% trans 'Ajouter' %}
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if user.addresses.exists %}
+                        <div class="list-group list-group-flush">
+                            {% for address in user.addresses.all %}
+                            <div class="list-group-item px-0">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <h6 class="mb-1">{{ address.get_address_type_display }}</h6>
+                                        <p class="mb-1">
+                                            {{ address.street_address1 }}<br>
+                                            {% if address.street_address2 %}{{ address.street_address2 }}<br>{% endif %}
+                                            {{ address.postal_code }} {{ address.city }}<br>
+                                            {{ address.get_country_display }}
+                                        </p>
+                                    </div>
+                                    <div class="btn-group">
+                                        <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="tooltip" title="{% trans 'Modifier' %}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="tooltip" title="{% trans 'Supprimer' %}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% if address.is_default %}
+                                    <span class="badge bg-success mt-2">{% trans 'Par défaut' %}</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-3">
+                            <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                            <p class="text-muted mb-0">{% trans 'Aucune adresse enregistrée' %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Statistiques rapides -->
+            <div class="row">
+                <div class="col-md-6 col-lg-12 mb-3 mb-md-0 mb-lg-3">
+                    <div class="stat-card bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted small mb-1">{% trans 'Commandes' %}</h6>
+                                <h3 class="mb-0">{{ order_count }}</h3>
+                            </div>
+                            <div class="stat-icon text-primary">
+                                <i class="fas fa-shopping-cart"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-success">{{ completed_orders }} <small>{% trans 'terminées' %}</small></span> •
+                            <span class="text-warning">{{ pending_orders }} <small>{% trans 'en cours' %}</small></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-12">
+                    <div class="stat-card bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="text-uppercase text-muted small mb-1">{% trans 'Dépenses' %}</h6>
+                                <h3 class="mb-0">{{ total_spent|floatformat:2 }} €</h3>
+                            </div>
+                            <div class="stat-icon text-success">
+                                <i class="fas fa-euro-sign"></i>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <span class="text-muted small">{{ avg_order_value|floatformat:2 }} € {% trans 'de moyenne par commande' %}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Colonne de droite -->
+        <div class="col-lg-8">
+            <!-- Navigation par onglets -->
+            <ul class="nav nav-tabs mb-4" id="userTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="activity-tab" data-bs-toggle="tab" data-bs-target="#activity" type="button" role="tab" aria-controls="activity" aria-selected="true">
+                        <i class="fas fa-history me-1"></i> {% trans 'Activité récente' %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="orders-tab" data-bs-toggle="tab" data-bs-target="#orders" type="button" role="tab" aria-controls="orders" aria-selected="false">
+                        <i class="fas fa-shopping-bag me-1"></i> {% trans 'Commandes' %}
+                        <span class="badge bg-primary rounded-pill ms-1">{{ order_count }}</span>
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="wishlist-tab" data-bs-toggle="tab" data-bs-target="#wishlist" type="button" role="tab" aria-controls="wishlist" aria-selected="false">
+                        <i class="fas fa-heart me-1"></i> {% trans 'Liste de souhaits' %}
+                        {% if wishlist_count > 0 %}
+                            <span class="badge bg-danger rounded-pill ms-1">{{ wishlist_count }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="reviews-tab" data-bs-toggle="tab" data-bs-target="#reviews" type="button" role="tab" aria-controls="reviews" aria-selected="false">
+                        <i class="fas fa-star me-1"></i> {% trans 'Avis' %}
+                        {% if review_count > 0 %}
+                            <span class="badge bg-warning text-dark rounded-pill ms-1">{{ review_count }}</span>
+                        {% endif %}
+                    </button>
+                </li>
+            </ul>
+            
+            <!-- Contenu des onglets -->
+            <div class="tab-content" id="userTabsContent">
+                <!-- Onglet Activité récente -->
+                <div class="tab-pane fade show active" id="activity" role="tabpanel" aria-labelledby="activity-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            {% if recent_activity %}
+                                {% for activity in recent_activity %}
+                                <div class="activity-item {% if activity.type == 'order' and activity.status == 'completed' %}completed{% elif activity.type == 'order' and activity.status == 'cancelled' %}cancelled{% elif activity.type == 'order' %}pending{% endif %}">
+                                    <div class="d-flex justify-content-between">
+                                        <h6 class="mb-1">
+                                            {% if activity.type == 'order' %}
+                                                {% if activity.status == 'completed' %}
+                                                    {% trans 'Commande livrée' %}
+                                                {% elif activity.status == 'cancelled' %}
+                                                    {% trans 'Commande annulée' %}
+                                                {% else %}
+                                                    {% trans 'Nouvelle commande passée' %}
+                                                {% endif %}
+                                            {% elif activity.type == 'account' %}
+                                                {% trans 'Compte mis à jour' %}
+                                            {% elif activity.type == 'review' %}
+                                                {% trans 'Nouvel avis laissé' %}
+                                            {% endif %}
+                                        </h6>
+                                        <small class="text-muted">{{ activity.date|timesince }} {% trans 'depuis' %}</small>
+                                    </div>
+                                    <p class="mb-1">
+                                        {% if activity.type == 'order' %}
+                                            {% trans 'Commande' %} #{{ activity.order_id }}
+                                            {% if activity.status == 'completed' %}
+                                                - {{ activity.total|floatformat:2 }} €
+                                            {% endif %}
+                                        {% elif activity.type == 'review' %}
+                                            {{ activity.rating }} <i class="fas fa-star text-warning"></i> - {{ activity.product }}
+                                        {% else %}
+                                            {{ activity.details }}
+                                        {% endif %}
+                                    </p>
+                                    {% if activity.type == 'order' and activity.status != 'cancelled' %}
+                                        <a href="{% url 'boutique:admin_order_detail' activity.order_id %}" class="btn btn-sm btn-outline-primary mt-1">
+                                            <i class="fas fa-eye me-1"></i> {% trans 'Voir la commande' %}
+                                        </a>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                                
+                                <div class="text-center mt-3">
+                                    <a href="#" class="btn btn-outline-primary">
+                                        <i class="fas fa-history me-1"></i> {% trans 'Voir toute l\'activité' %}
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-4">
+                                    <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">{% trans 'Aucune activité récente' %}</h5>
+                                    <p class="text-muted">
+                                        {% trans 'Les activités de cet utilisateur apparaîtront ici.' %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Commandes -->
+                <div class="tab-pane fade" id="orders" role="tabpanel" aria-labelledby="orders-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-body p-0">
+                            {% if orders %}
+                                <div class="table-responsive">
+                                    <table class="table table-hover mb-0">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>{% trans 'Commande' %}</th>
+                                                <th>{% trans 'Date' %}</th>
+                                                <th class="text-end">{% trans 'Total' %}</th>
+                                                <th class="text-center">{% trans 'Statut' %}</th>
+                                                <th class="text-end">{% trans 'Actions' %}</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for order in orders %}
+                                            <tr>
+                                                <td>
+                                                    <a href="{% url 'boutique:admin_order_detail' order.pk %}" class="text-decoration-none fw-medium">
+                                                        #{{ order.id|stringformat:"06d" }}
+                                                    </a>
+                                                </td>
+                                                <td>{{ order.created_at|date:"d/m/Y" }}</td>
+                                                <td class="text-end">{{ order.get_total_cost|floatformat:2 }} €</td>
+                                                <td class="text-center">
+                                                    <span class="badge {% if order.status == 'en_attente' %}bg-warning text-dark
+                                                                    {% elif order.status == 'payee' %}bg-info
+                                                                    {% elif order.status == 'en_preparation' %}bg-primary
+                                                                    {% elif order.status == 'expediee' or order.status == 'en_livraison' %}bg-info
+                                                                    {% elif order.status == 'livree' or order.status == 'recuperee' %}bg-success
+                                                                    {% elif order.status == 'annulee' %}bg-danger
+                                                                    {% else %}bg-secondary{% endif %}">
+                                                        {{ order.get_status_display }}
+                                                    </span>
+                                                </td>
+                                                <td class="text-end">
+                                                    <a href="{% url 'boutique:admin_order_detail' order.pk %}" 
+                                                       class="btn btn-sm btn-outline-primary"
+                                                       data-bs-toggle="tooltip" 
+                                                       title="{% trans 'Voir les détails' %}">
+                                                        <i class="fas fa-eye"></i>
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="card-footer bg-white">
+                                    <a href="{% url 'boutique:admin_order_list' %}?user={{ user.id }}" class="btn btn-outline-primary">
+                                        <i class="fas fa-list me-1"></i> {% trans 'Voir toutes les commandes' %}
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">{% trans 'Aucune commande trouvée' %}</h5>
+                                    <p class="text-muted">
+                                        {% trans 'Cet utilisateur n\'a encore passé aucune commande.' %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Liste de souhaits -->
+                <div class="tab-pane fade" id="wishlist" role="tabpanel" aria-labelledby="wishlist-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            {% if wishlist_items %}
+                                <div class="row">
+                                    {% for item in wishlist_items %}
+                                    <div class="col-md-6 col-lg-4 mb-4">
+                                        <div class="card h-100">
+                                            <div class="position-relative">
+                                                {% if item.product.image %}
+                                                    <img src="{{ item.product.image.url }}" class="card-img-top" alt="{{ item.product.name }}" style="height: 180px; object-fit: cover;">
+                                                {% else %}
+                                                    <div class="bg-light d-flex align-items-center justify-content-center" style="height: 180px;">
+                                                        <i class="fas fa-box-open fa-3x text-muted"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="position-absolute top-0 end-0 p-2">
+                                                    <button class="btn btn-sm btn-outline-danger rounded-circle" data-bs-toggle="tooltip" title="{% trans 'Supprimer' %}">
+                                                        <i class="fas fa-times"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-body">
+                                                <h6 class="card-title mb-1">
+                                                    <a href="{{ item.product.get_absolute_url }}" class="text-decoration-none">
+                                                        {{ item.product.name }}
+                                                    </a>
+                                                </h6>
+                                                <p class="card-text text-muted small mb-2">
+                                                    {{ item.product.category.name }}
+                                                </p>
+                                                <div class="d-flex justify-content-between align-items-center">
+                                                    <span class="fw-bold">{{ item.product.price|floatformat:2 }} €</span>
+                                                    <button class="btn btn-sm btn-outline-primary">
+                                                        <i class="fas fa-cart-plus me-1"></i> {% trans 'Ajouter au panier' %}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            <div class="card-footer bg-white border-top-0 pt-0">
+                                                <small class="text-muted">
+                                                    <i class="far fa-clock me-1"></i> 
+                                                    {% blocktrans with time_since=item.added_at|timesince %}{{ time_since }} depuis l'ajout{% endblocktrans %}
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">{% trans 'Liste de souhaits vide' %}</h5>
+                                    <p class="text-muted">
+                                        {% trans 'Cet utilisateur n\'a encore rien ajouté à sa liste de souhaits.' %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Onglet Avis -->
+                <div class="tab-pane fade" id="reviews" role="tabpanel" aria-labelledby="reviews-tab">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            {% if reviews %}
+                                {% for review in reviews %}
+                                <div class="border-bottom pb-3 mb-3">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h6 class="mb-1">
+                                                <a href="{{ review.product.get_absolute_url }}" class="text-decoration-none">
+                                                    {{ review.product.name }}
+                                                </a>
+                                            </h6>
+                                            <div class="mb-2">
+                                                {% for i in "12345"|make_list %}
+                                                    {% if forloop.counter <= review.rating %}
+                                                        <i class="fas fa-star text-warning"></i>
+                                                    {% else %}
+                                                        <i class="far fa-star text-warning"></i>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <small class="text-muted ms-1">{{ review.created_at|date:"d/m/Y" }}</small>
+                                            </div>
+                                        </div>
+                                        <div class="dropdown
+                                            <button class="btn btn-sm btn-outline-secondary rounded-circle" type="button" id="reviewDropdown{{ review.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                <i class="fas fa-ellipsis-v"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="reviewDropdown{{ review.id }}">
+                                                <li>
+                                                    <a class="dropdown-item" href="#">
+                                                        <i class="fas fa-edit me-2"></i> {% trans 'Modifier' %}
+                                                    </a>
+                                                </li>
+                                                <li>
+                                                    <a class="dropdown-item text-danger" href="#">
+                                                        <i class="fas fa-trash-alt me-2"></i> {% trans 'Supprimer' %}
+                                                    </a>
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <p class="mb-0">{{ review.comment|linebreaksbr }}</p>
+                                    {% if review.response %}
+                                        <div class="bg-light p-3 mt-3 rounded">
+                                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                                <strong>{% trans 'Réponse du vendeur' %}</strong>
+                                                <small class="text-muted">{{ review.updated_at|date:"d/m/Y" }}</small>
+                                            </div>
+                                            <p class="mb-0">{{ review.response|linebreaksbr }}</p>
+                                        </div>
+                                    {% else %}
+                                        <div class="mt-2">
+                                            <button class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-reply me-1"></i> {% trans 'Répondre' %}
+                                            </button>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                                
+                                <div class="text-center mt-3">
+                                    <a href="#" class="btn btn-outline-primary">
+                                        <i class="fas fa-star me-1"></i> {% trans 'Voir tous les avis' %}
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div class="text-center py-5">
+                                    <i class="fas fa-star fa-3x text-muted mb-3"></i>
+                                    <h5 class="text-muted">{% trans 'Aucun avis trouvé' %}</h5>
+                                    <p class="text-muted">
+                                        {% trans 'Cet utilisateur n\'a encore laissé aucun avis.' %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialisation des tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+        
+        // Initialisation des dropdowns
+        var dropdownElementList = [].slice.call(document.querySelectorAll('.dropdown-toggle'));
+        var dropdownList = dropdownElementList.map(function (dropdownToggleEl) {
+            return new bootstrap.Dropdown(dropdownToggleEl);
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,154 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans 'Supprimer le produit' %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">{% trans 'Confirmer la suppression' %}</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex mb-4">
+                        {% if object.image %}
+                            <img src="{{ object.image.url }}" alt="{{ object.name }}" 
+                                 class="img-thumbnail me-4" style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-light d-flex align-items-center justify-content-center me-4" 
+                                 style="width: 120px; height: 120px;">
+                                <i class="fas fa-box fa-3x text-muted"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h4 class="mb-2">{{ object.name }}</h4>
+                            <p class="text-muted mb-1">
+                                <strong>{% trans 'Référence' %}:</strong> {{ object.sku|default:"N/A" }}
+                            </p>
+                            <p class="text-muted mb-0">
+                                <strong>{% trans 'Prix' %}:</strong> {{ object.price }} €
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-warning">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            {% trans 'Attention ! Cette action est irréversible.' %}
+                        </h6>
+                        <p class="mb-0">
+                            {% trans 'Êtes-vous sûr de vouloir supprimer ce produit ? Toutes les données associées seront également supprimées.' %}
+                        </p>
+                    </div>
+                    
+                    {% if object.order_items.exists %}
+                        <div class="alert alert-info">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% trans 'Information importante' %}
+                            </h6>
+                            <p class="mb-0">
+                                {% blocktrans count counter=object.order_items.count %}
+                                    Ce produit est associé à 1 commande. Si vous le supprimez, cette association sera perdue.
+                                {% plural %}
+                                    Ce produit est associé à {{ counter }} commandes. Si vous le supprimez, ces associations seront perdues.
+                                {% endblocktrans %}
+                            </p>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash-alt me-1"></i> {% trans 'Oui, supprimer' %}
+                            </button>
+                        </form>
+                        <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i> {% trans 'Non, annuler' %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card mt-4">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0">{% trans 'Détails du produit' %}</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">{% trans 'Nom' %}</dt>
+                                <dd class="col-sm-7">{{ object.name }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Référence' %}</dt>
+                                <dd class="col-sm-7">{{ object.sku|default:"N/A" }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Prix' %}</dt>
+                                <dd class="col-sm-7">{{ object.price }} €</dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Stock' %}</dt>
+                                <dd class="col-sm-7">
+                                    {% if object.stock > 0 %}
+                                        <span class="badge bg-success">{{ object.stock }}</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">{% trans 'Rupture' %}</span>
+                                    {% endif %}
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">{% trans 'Catégorie' %}</dt>
+                                <dd class="col-sm-7">
+                                    {% if object.category %}
+                                        {{ object.category.name }}
+                                    {% else %}
+                                        <span class="text-muted">{% trans 'Aucune' %}</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Statut' %}</dt>
+                                <dd class="col-sm-7">
+                                    {% if object.available %}
+                                        <span class="badge bg-success">{% trans 'Disponible' %}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{% trans 'Indisponible' %}</span>
+                                    {% endif %}
+                                </dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Date de création' %}</dt>
+                                <dd class="col-sm-7">{{ object.created_at|date:"d/m/Y H:i" }}</dd>
+                                
+                                <dt class="col-sm-5">{% trans 'Dernière modification' %}</dt>
+                                <dd class="col-sm-7">{{ object.updated_at|date:"d/m/Y H:i" }}</dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Désactiver le double-clic sur le bouton de soumission pour éviter les envois multiples
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function() {
+                const submitButton = this.querySelector('button[type="submit"]');
+                if (submitButton) {
+                    submitButton.disabled = true;
+                    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> {% trans "Suppression en cours..." %}';
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

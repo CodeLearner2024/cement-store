@@ -1,0 +1,315 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Se connecter" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Style spécifique pour la page de connexion */
+    .login-container {
+        max-width: 450px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.1);
+        margin-top: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .auth-card {
+        width: 100%;
+        border: none;
+    }
+    
+    .form-signin .form-floating:focus-within {
+        z-index: 2;
+    }
+    
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .auth-logo {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .auth-logo img {
+        height: 60px;
+        margin-bottom: 1rem;
+    }
+    
+    .auth-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .auth-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding: 1rem 0;
+    }
+    
+    .auth-body {
+        padding: 1rem 0;
+    }
+    
+    .btn-google {
+        color: #fff;
+        background-color: #dd4b39;
+        border-color: #dd4b39;
+    }
+    
+    .btn-google:hover {
+        color: #fff;
+        background-color: #c23321;
+        border-color: #b92c1b;
+    }
+    
+    .btn-facebook {
+        color: #fff;
+        background-color: #3b5998;
+        border-color: #3b5998;
+    }
+    
+    .btn-facebook:hover {
+        color: #fff;
+        background-color: #2d4373;
+        border-color: #293e6a;
+    }
+    
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+    
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .divider:not(:empty)::before {
+        margin-right: 1.5em;
+    }
+    
+    .divider:not(:empty)::after {
+        margin-left: 1.5em;
+    }
+    
+    .form-control:focus {
+        border-color: #4e73df;
+        box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        width: 100%;
+        margin-top: 1rem;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2653d4;
+    }
+    
+    .auth-footer {
+        text-align: center;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #eee;
+        color: #6c757d;
+    }
+    
+    .auth-footer a {
+        color: #4e73df;
+        text-decoration: none;
+    }
+    
+    .auth-footer a:hover {
+        text-decoration: underline;
+    }
+    
+    .errorlist {
+        color: #e74a3b;
+        padding-left: 1.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    .social-login .btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.6rem 1rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.9rem;
+    }
+    
+    .social-login .btn i {
+        margin-right: 0.5rem;
+        font-size: 1.1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<main class="container my-5">
+    <div class="login-container">
+        <div class="auth-card">
+        <div class="auth-header">
+            <div class="auth-logo">
+                {% if site_logo %}
+                    <img src="{{ site_logo.url }}" alt="{{ site_name }}">
+                {% else %}
+                    <h2>{{ site_name }}</h2>
+                {% endif %}
+                <p class="mb-0">{% trans "Bienvenue, veuillez vous connecter" %}</p>
+            </div>
+        </div>
+        
+        <div class="auth-body">
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {% for error in form.non_field_errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            <form class="login" method="POST" action="{% url 'account_login' %}">
+                {% csrf_token %}
+                
+                {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
+                {% endif %}
+                
+                <div class="form-floating mb-3">
+                    <input type="email" name="login" class="form-control" id="id_login" 
+                           placeholder="{% trans 'Adresse email' %}" required autofocus>
+                    <label for="id_login">{% trans 'Adresse email' %}</label>
+                    {% if form.login.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.login.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-floating mb-3">
+                    <input type="password" name="password" class="form-control" 
+                           id="id_password" placeholder="{% trans 'Mot de passe' %}" required>
+                    <label for="id_password">{% trans 'Mot de passe' %}</label>
+                    {% if form.password.errors %}
+                        <div class="invalid-feedback d-block">
+                            {{ form.password.errors.0 }}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="remember" id="id_remember">
+                        <label class="form-check-label" for="id_remember">
+                            {% trans 'Se souvenir de moi' %}
+                        </label>
+                    </div>
+                    <a href="{% url 'account_reset_password' %}" class="text-decoration-none">
+                        {% trans 'Mot de passe oublié ?' %}
+                    </a>
+                </div>
+                
+                <button class="w-100 btn btn-lg btn-primary mb-3" type="submit">
+                    {% trans 'Se connecter' %}
+                </button>
+                
+                {% if socialaccount.providers %}
+                <div class="divider">{% trans 'ou' %}</div>
+                
+                <div class="social-login">
+                    {% include "socialaccount/snippets/provider_list.html" with process="login" %}
+                </div>
+                {% endif %}
+            </form>
+        </div>
+        
+        <div class="auth-footer p-3 bg-light">
+            {% trans "Vous n'avez pas de compte ?" %} 
+            <a href="{% url 'account_signup' %}">{% trans "S'inscrire" %}</a>
+        </div>
+    </div>
+        </div>
+    </div>
+</main>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Ajouter des classes Bootstrap aux boutons de connexion sociale
+    const socialButtons = document.querySelectorAll('.socialaccount_provider');
+    socialButtons.forEach(button => {
+        const provider = button.textContent.trim().toLowerCase();
+        button.className = 'btn w-100';
+        
+        if (provider.includes('google')) {
+            button.classList.add('btn-google');
+            button.innerHTML = '<i class="fab fa-google"></i> ' + button.textContent;
+        } else if (provider.includes('facebook')) {
+            button.classList.add('btn-facebook');
+            button.innerHTML = '<i class="fab fa-facebook-f"></i> ' + button.textContent;
+        } else {
+            button.classList.add('btn-outline-secondary');
+        }
+    });
+    
+    // Gestion de la validation du formulaire
+    const form = document.querySelector('form.login');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const email = document.getElementById('id_login');
+            const password = document.getElementById('id_password');
+            let isValid = true;
+            
+            // Validation de l'email
+            if (!email.value) {
+                email.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                email.classList.remove('is-invalid');
+            }
+            
+            // Validation du mot de passe
+            if (!password.value) {
+                password.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                password.classList.remove('is-invalid');
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,1119 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n static %}
+
+{% block title %}
+    {% if form.instance.pk %}{% trans 'Modifier l\'utilisateur' %}{% else %}{% trans 'Ajouter un utilisateur' %}{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .profile-picture-container {
+        position: relative;
+        width: 150px;
+        height: 150px;
+        margin: 0 auto 1.5rem;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 5px solid #f8f9fa;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .profile-picture {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    .profile-picture-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #f8f9fa;
+        color: #6c757d;
+        font-size: 4rem;
+    }
+    .profile-picture-actions {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        padding: 0.5rem;
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    .profile-picture-actions .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+    .password-toggle {
+        cursor: pointer;
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 5;
+    }
+    .form-password {
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_dashboard' %}">{% trans 'Tableau de bord' %}</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_user_list' %}">{% trans 'Utilisateurs' %}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">
+                        {% if form.instance.pk %}{% trans 'Modifier' %}{% else %}{% trans 'Ajouter un utilisateur' %}{% endif %}
+                    </li>
+                </ol>
+            </nav>
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">
+                    {% if form.instance.pk %}
+                        {% trans 'Modifier l\'utilisateur' %}
+                    {% else %}
+                        {% trans 'Ajouter un nouvel utilisateur' %}
+                    {% endif %}
+                </h1>
+                <div>
+                    <a href="{% if form.instance.pk %}{% url 'boutique:admin_user_detail' form.instance.pk %}{% else %}{% url 'boutique:admin_user_list' %}{% endif %}" 
+                       class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour' %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" id="userForm">
+        {% csrf_token %}
+        
+        <div class="row">
+            <!-- Colonne de gauche -->
+            <div class="col-lg-4">
+                <!-- Photo de profil -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center">
+                        <div class="profile-picture-container">
+                            {% if form.instance.avatar %}
+                                <img src="{{ form.instance.avatar.url }}" alt="{{ form.instance.get_full_name }}" 
+                                     class="profile-picture" id="avatarPreview">
+                            {% else %}
+                                <div class="profile-picture-placeholder" id="avatarPlaceholder">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                                <img src="" alt="" class="profile-picture d-none" id="avatarPreview">
+                            {% endif %}
+                            
+                            <div class="profile-picture-actions">
+                                <label class="btn btn-primary btn-sm mb-0" for="id_avatar">
+                                    <i class="fas fa-camera me-1"></i>
+                                    <span class="d-none d-sm-inline">{% trans 'Changer' %}</span>
+                                    <input type="file" name="avatar" id="id_avatar" accept="image/*" class="d-none">
+                                </label>
+                                {% if form.instance.avatar %}
+                                <button type="button" class="btn btn-danger btn-sm" id="removeAvatar">
+                                    <i class="fas fa-trash-alt"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h5 class="mb-1">
+                            {% if form.instance.get_full_name %}
+                                {{ form.instance.get_full_name }}
+                            {% else %}
+                                <span id="fullNamePreview">{% trans 'Nouvel utilisateur' %}</span>
+                            {% endif %}
+                        </h5>
+                        <p class="text-muted mb-0" id="emailPreview">
+                            {% if form.instance.email %}
+                                {{ form.instance.email }}
+                            {% else %}
+                                email@exemple.com
+                            {% endif %}
+                        </p>
+                        
+                        <div class="mt-3">
+                            {% if form.instance.is_active %}
+                                <span class="badge bg-success">{% trans 'Actif' %}</span>
+                            {% else %}
+                                <span class="badge bg-warning text-dark">{% trans 'Inactif' %}</span>
+                            {% endif %}
+                            
+                            {% if form.instance.is_staff %}
+                                <span class="badge bg-primary">
+                                    {% if form.instance.is_superuser %}
+                                        {% trans 'Super Admin' %}
+                                    {% else %}
+                                        {% trans 'Staff' %}
+                                    {% endif %}
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary">{% trans 'Client' %}</span>
+                            {% endif %}
+                        </div>
+                        
+                        {% if form.instance.date_joined %}
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="far fa-calendar-alt me-1"></i> 
+                                    {% trans 'Inscrit le' %} {{ form.instance.date_joined|date:"d/m/Y" }}
+                                </small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-footer bg-white">
+                        <div class="form-check form-switch">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                {% trans 'Compte activé' %}
+                            </label>
+                        </div>
+                        
+                        {% if form.instance.pk %}
+                        <div class="mt-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                {% trans 'Dernière connexion' %}: 
+                                {% if form.instance.last_login %}
+                                    {{ form.instance.last_login|timesince }} {% trans 'depuis' %}
+                                {% else %}
+                                    {% trans 'Jamais' %}
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Rôles et permissions -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-shield me-2"></i> {% trans 'Rôles et permissions' %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">{% trans 'Rôle principal' %}</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="roleCustomer" 
+                                       value="customer" {% if not form.instance.is_staff %}checked{% endif %}>
+                                <label class="form-check-label" for="roleCustomer">
+                                    {% trans 'Client' %}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="roleStaff" 
+                                       value="staff" {% if form.instance.is_staff and not form.instance.is_superuser %}checked{% endif %}>
+                                <label class="form-check-label" for="roleStaff">
+                                    {% trans 'Staff' %}
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="roleSuperuser" 
+                                       value="superuser" {% if form.instance.is_superuser %}checked{% endif %}>
+                                <label class="form-check-label" for="roleSuperuser">
+                                    {% trans 'Super Admin' %}
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div id="staffPermissions" class="{% if not form.instance.is_staff %}d-none{% endif %}">
+                            <label class="form-label fw-medium">{% trans 'Permissions' %}</label>
+                            
+                            <div class="form-check">
+                                {{ form.is_staff }}
+                                <label class="form-check-label" for="{{ form.is_staff.id_for_label }}">
+                                    {% trans 'Accès à l\'administration' %}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                {{ form.can_manage_products }}
+                                <label class="form-check-label" for="{{ form.can_manage_products.id_for_label }}">
+                                    {% trans 'Gérer les produits' %}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                {{ form.can_manage_orders }}
+                                <label class="form-check-label" for="{{ form.can_manage_orders.id_for_label }}">
+                                    {% trans 'Gérer les commandes' %}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                {{ form.can_manage_customers }}
+                                <label class="form-check-label" for="{{ form.can_manage_customers.id_for_label }}">
+                                    {% trans 'Gérer les clients' %}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                {{ form.can_manage_discounts }}
+                                <label class="form-check-label" for="{{ form.can_manage_discounts.id_for_label }}">
+                                    {% trans 'Gérer les réductions' %}
+                                </label>
+                            </div>
+                            
+                            <div class="form-check">
+                                {{ form.can_manage_content }}
+                                <label class="form-check-label" for="{{ form.can_manage_content.id_for_label }}">
+                                    {% trans 'Gérer le contenu' %}
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Options avancées -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cog me-2"></i> {% trans 'Options avancées' %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="{{ form.language.id_for_label }}" class="form-label">
+                                {% trans 'Langue préférée' %}
+                            </label>
+                            {{ form.language }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.timezone.id_for_label }}" class="form-label">
+                                {% trans 'Fuseau horaire' %}
+                            </label>
+                            {{ form.timezone }}
+                        </div>
+                        
+                        <div class="form-check form-switch">
+                            {{ form.email_verified }}
+                            <label class="form-check-label" for="{{ form.email_verified.id_for_label }}">
+                                {% trans 'Email vérifié' %}
+                            </label>
+                        </div>
+                        
+                        {% if form.instance.phone %}
+                        <div class="form-check form-switch mt-2">
+                            {{ form.phone_verified }}
+                            <label class="form-check-label" for="{{ form.phone_verified.id_for_label }}">
+                                {% trans 'Téléphone vérifié' %}
+                            </label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Colonne de droite -->
+            <div class="col-lg-8">
+                <!-- Informations de base -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-user-edit me-2"></i> {% trans 'Informations personnelles' %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                                    {% trans 'Prénom' %}
+                                </label>
+                                {{ form.first_name }}
+                                {% if form.first_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.first_name.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                                    {% trans 'Nom' %}
+                                </label>
+                                {{ form.last_name }}
+                                {% if form.last_name.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.last_name.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">
+                                {% trans 'Adresse email' %}
+                            </label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.email.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label">
+                                {% trans 'Téléphone' %}
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">+33</span>
+                                {{ form.phone }}
+                            </div>
+                            {% if form.phone.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.phone.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <small class="text-muted">{% trans 'Format : 612345678 (sans espace ni tiret)' %}</small>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.birth_date.id_for_label }}" class="form-label">
+                                {% trans 'Date de naissance' %}
+                            </label>
+                            {{ form.birth_date }}
+                            {% if form.birth_date.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.birth_date.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-check">
+                            {{ form.newsletter_subscription }}
+                            <label class="form-check-label" for="{{ form.newsletter_subscription.id_for_label }}">
+                                {% trans 'S\'abonner à la newsletter' %}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Mot de passe -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-lock me-2"></i> {% trans 'Sécurité' %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if form.instance.pk %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% trans 'Laissez ces champs vides pour ne pas modifier le mot de passe.' %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mb-3 form-password">
+                            <label for="{{ form.password1.id_for_label }}" class="form-label">
+                                {% trans 'Nouveau mot de passe' %}
+                            </label>
+                            {{ form.password1 }}
+                            <i class="password-toggle fas fa-eye text-muted" data-target="{{ form.password1.id_for_label }}"></i>
+                            {% if form.password1.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password1.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text">
+                                <div id="passwordHelp" class="form-text">
+                                    <div id="password-strength" class="mb-1"></div>
+                                    <div id="password-requirements" class="small">
+                                        <div data-requirement="length">
+                                            <i class="fas fa-circle text-muted me-1" style="font-size: 0.5rem;"></i>
+                                            {% trans 'Au moins 8 caractères' %}
+                                        </div>
+                                        <div data-requirement="uppercase">
+                                            <i class="fas fa-circle text-muted me-1" style="font-size: 0.5rem;"></i>
+                                            {% trans 'Au moins une majuscule' %}
+                                        </div>
+                                        <div data-requirement="lowercase">
+                                            <i class="fas fa-circle text-muted me-1" style="font-size: 0.5rem;"></i>
+                                            {% trans 'Au moins une minuscule' %}
+                                        </div>
+                                        <div data-requirement="number">
+                                            <i class="fas fa-circle text-muted me-1" style="font-size: 0.5rem;"></i>
+                                            {% trans 'Au moins un chiffre' %}
+                                        </div>
+                                        <div data-requirement="special">
+                                            <i class="fas fa-circle text-muted me-1" style="font-size: 0.5rem;"></i>
+                                            {% trans 'Au moins un caractère spécial' %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3 form-password">
+                            <label for="{{ form.password2.id_for_label }}" class="form-label">
+                                {% trans 'Confirmer le mot de passe' %}
+                            </label>
+                            {{ form.password2 }}
+                            <i class="password-toggle fas fa-eye text-muted" data-target="{{ form.password2.id_for_label }}"></i>
+                            {% if form.password2.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.password2.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if form.instance.pk %}
+                        <div class="alert alert-warning">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="forcePasswordChange" name="force_password_change">
+                                <label class="form-check-label" for="forcePasswordChange">
+                                    {% trans 'Forcer la réinitialisation du mot de passe à la prochaine connexion' %}
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Adresses -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-map-marker-alt me-2"></i> {% trans 'Adresses' %}
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="addAddressBtn">
+                            <i class="fas fa-plus me-1"></i> {% trans 'Ajouter une adresse' %}
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="addressesContainer">
+                            {% if form.instance.addresses.exists %}
+                                {% for address in form.instance.addresses.all %}
+                                <div class="card mb-3 address-card" data-address-id="{{ address.id }}">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h6 class="mb-1">
+                                                    {{ address.get_address_type_display }}
+                                                    {% if address.is_default %}
+                                                        <span class="badge bg-success ms-2">{% trans 'Par défaut' %}</span>
+                                                    {% endif %}
+                                                </h6>
+                                                <p class="mb-0 text-muted small">
+                                                    {{ address.street_address1 }}<br>
+                                                    {% if address.street_address2 %}{{ address.street_address2 }}<br>{% endif %}
+                                                    {{ address.postal_code }} {{ address.city }}<br>
+                                                    {{ address.get_country_display }}
+                                                </p>
+                                            </div>
+                                            <div class="btn-group">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary edit-address" data-address-id="{{ address.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger delete-address" data-address-id="{{ address.id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="default_address" 
+                                                   id="default_address_{{ address.id }}" value="{{ address.id }}" 
+                                                   {% if address.is_default %}checked{% endif %}>
+                                            <label class="form-check-label" for="default_address_{{ address.id }}">
+                                                {% trans 'Définir comme adresse par défaut' %}
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="text-center py-4" id="noAddressesMessage">
+                                    <i class="fas fa-map-marker-alt fa-3x text-muted mb-3"></i>
+                                    <p class="text-muted mb-0">
+                                        {% trans 'Aucune adresse enregistrée pour cet utilisateur.' %}
+                                    </p>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Notes internes -->
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sticky-note me-2"></i> {% trans 'Notes internes' %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            {{ form.notes }}
+                            <div class="form-text">
+                                {% trans 'Ces notes sont uniquement visibles par les administrateurs.' %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        {% if form.instance.pk %}
+                            <a href="{% url 'boutique:admin_user_detail' form.instance.pk %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                            </a>
+                        {% else %}
+                            <a href="{% url 'boutique:admin_user_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                            </a>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i> 
+                            {% if form.instance.pk %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Créer l\'utilisateur' %}{% endif %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modale d'ajout/modification d'adresse -->
+<div class="modal fade" id="addressModal" tabindex="-1" aria-labelledby="addressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addressModalLabel">
+                    {% trans 'Ajouter une adresse' %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Fermer' %}"></button>
+            </div>
+            <form id="addressForm">
+                <div class="modal-body">
+                    <input type="hidden" id="addressId" name="address_id" value="">
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="addressType" class="form-label">{% trans 'Type d\'adresse' %}</label>
+                            <select class="form-select" id="addressType" name="address_type" required>
+                                <option value="home">{% trans 'Domicile' %}</option>
+                                <option value="work">{% trans 'Travail' %}</option>
+                                <option value="other">{% trans 'Autre' %}</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="fullName" class="form-label">{% trans 'Nom complet' %}</label>
+                            <input type="text" class="form-control" id="fullName" name="full_name" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="streetAddress1" class="form-label">{% trans 'Adresse' %}</label>
+                        <input type="text" class="form-control" id="streetAddress1" name="street_address1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="streetAddress2" class="form-label">{% trans 'Complément d\'adresse' %}</label>
+                        <input type="text" class="form-control" id="streetAddress2" name="street_address2">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="postalCode" class="form-label">{% trans 'Code postal' %}</label>
+                            <input type="text" class="form-control" id="postalCode" name="postal_code" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="city" class="form-label">{% trans 'Ville' %}</label>
+                            <input type="text" class="form-control" id="city" name="city" required>
+                        </div>
+                        <div class="col-md-2 mb-3">
+                            <label for="country" class="form-label">{% trans 'Pays' %}</label>
+                            <select class="form-select" id="country" name="country" required>
+                                <option value="FR" selected>France</option>
+                                <option value="BE">Belgique</option>
+                                <option value="CH">Suisse</option>
+                                <option value="LU">Luxembourg</option>
+                                <option value="CA">Canada</option>
+                                <option value="MA">Maroc</option>
+                                <option value="TN">Tunisie</option>
+                                <option value="DZ">Algérie</option>
+                                <option value="SN">Sénégal</option>
+                                <option value="CI">Côte d'Ivoire</option>
+                                <option value="other">{% trans 'Autre' %}</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="isDefaultAddress" name="is_default">
+                        <label class="form-check-label" for="isDefaultAddress">
+                            {% trans 'Définir comme adresse par défaut' %}
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i> {% trans 'Enregistrer' %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modale de confirmation de suppression d'adresse -->
+<div class="modal fade" id="deleteAddressModal" tabindex="-1" aria-labelledby="deleteAddressModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteAddressModalLabel">
+                    {% trans 'Confirmer la suppression' %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Fermer' %}"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans 'Êtes-vous sûr de vouloir supprimer cette adresse ? Cette action est irréversible.' %}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteAddress">
+                    <i class="fas fa-trash-alt me-1"></i> {% trans 'Supprimer' %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxcvbn/4.4.2/zxcvbn.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation des tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    // Gestion de l'aperçu de la photo de profil
+    const avatarInput = document.getElementById('id_avatar');
+    const avatarPreview = document.getElementById('avatarPreview');
+    const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+    const removeAvatarBtn = document.getElementById('removeAvatar');
+    
+    if (avatarInput) {
+        avatarInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (avatarPlaceholder) {
+                        avatarPlaceholder.classList.add('d-none');
+                    }
+                    avatarPreview.src = e.target.result;
+                    avatarPreview.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    if (removeAvatarBtn) {
+        removeAvatarBtn.addEventListener('click', function() {
+            // Créer un nouvel input file pour réinitialiser la valeur
+            const newInput = document.createElement('input');
+            newInput.type = 'file';
+            newInput.name = 'avatar';
+            newInput.id = 'id_avatar';
+            newInput.className = 'd-none';
+            newInput.accept = 'image/*';
+            
+            // Remplacer l'ancien input
+            avatarInput.parentNode.replaceChild(newInput, avatarInput);
+            
+            // Réinitialiser l'aperçu
+            if (avatarPlaceholder) {
+                avatarPlaceholder.classList.remove('d-none');
+            }
+            avatarPreview.src = '';
+            avatarPreview.classList.add('d-none');
+            
+            // Recréer l'événement change pour le nouvel input
+            document.getElementById('id_avatar').addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (avatarPlaceholder) {
+                            avatarPlaceholder.classList.add('d-none');
+                        }
+                        avatarPreview.src = e.target.result;
+                        avatarPreview.classList.remove('d-none');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+        });
+    }
+    
+    // Gestion de l'affichage/masquage du mot de passe
+    const passwordToggles = document.querySelectorAll('.password-toggle');
+    passwordToggles.forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const targetId = this.getAttribute('data-target');
+            const passwordInput = document.getElementById(targetId);
+            
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                this.classList.remove('fa-eye');
+                this.classList.add('fa-eye-slash');
+            } else {
+                passwordInput.type = 'password';
+                this.classList.remove('fa-eye-slash');
+                this.classList.add('fa-eye');
+            }
+        });
+    });
+    
+    // Vérification de la force du mot de passe
+    const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+    const passwordStrength = document.getElementById('password-strength');
+    const passwordRequirements = document.querySelectorAll('#password-requirements div');
+    
+    if (password1) {
+        password1.addEventListener('input', function() {
+            const password = this.value;
+            const result = zxcvbn(password);
+            
+            // Mise à jour de la barre de force
+            const strengthText = ['Très faible', 'Faible', 'Moyen', 'Fort', 'Très fort'][result.score];
+            const strengthClass = ['danger', 'warning', 'info', 'success', 'success'][result.score];
+            
+            passwordStrength.innerHTML = `
+                <div class="progress" style="height: 5px;">
+                    <div class="progress-bar bg-${strengthClass}" role="progressbar" 
+                         style="width: ${(result.score + 1) * 20}%;" 
+                         aria-valuenow="${(result.score + 1) * 20}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                    </div>
+                </div>
+                <small class="text-${strengthClass}">${strengthText}</small>
+                ${result.feedback.suggestions.length ? `<div class="small text-muted mt-1">${result.feedback.suggestions[0]}</div>` : ''}
+            `;
+            
+            // Vérification des exigences
+            const hasLength = password.length >= 8;
+            const hasUppercase = /[A-Z]/.test(password);
+            const hasLowercase = /[a-z]/.test(password);
+            const hasNumber = /[0-9]/.test(password);
+            const hasSpecial = /[^A-Za-z0-9]/.test(password);
+            
+            const requirements = [
+                { element: document.querySelector('[data-requirement="length"]'), valid: hasLength },
+                { element: document.querySelector('[data-requirement="uppercase"]'), valid: hasUppercase },
+                { element: document.querySelector('[data-requirement="lowercase"]'), valid: hasLowercase },
+                { element: document.querySelector('[data-requirement="number"]'), valid: hasNumber },
+                { element: document.querySelector('[data-requirement="special"]'), valid: hasSpecial }
+            ];
+            
+            requirements.forEach(req => {
+                const icon = req.element.querySelector('i');
+                if (req.valid) {
+                    icon.className = 'fas fa-check-circle text-success me-1';
+                } else {
+                    icon.className = 'fas fa-circle text-muted me-1';
+                    icon.style.fontSize = '0.5rem';
+                }
+            });
+        });
+    }
+    
+    // Gestion des rôles
+    const roleRadios = document.querySelectorAll('input[name="role"]');
+    const staffPermissions = document.getElementById('staffPermissions');
+    
+    function updateRoleFields() {
+        const selectedRole = document.querySelector('input[name="role"]:checked').value;
+        
+        if (selectedRole === 'customer') {
+            staffPermissions.classList.add('d-none');
+            document.getElementById('{{ form.is_staff.id_for_label }}').checked = false;
+            document.getElementById('{{ form.is_superuser.id_for_label }}').checked = false;
+        } else if (selectedRole === 'staff') {
+            staffPermissions.classList.remove('d-none');
+            document.getElementById('{{ form.is_staff.id_for_label }}').checked = true;
+            document.getElementById('{{ form.is_superuser.id_for_label }}').checked = false;
+        } else if (selectedRole === 'superuser') {
+            staffPermissions.classList.remove('d-none');
+            document.getElementById('{{ form.is_staff.id_for_label }}').checked = true;
+            document.getElementById('{{ form.is_superuser.id_for_label }}').checked = true;
+            
+            // Cochez toutes les permissions pour les superadmins
+            const permissions = [
+                '{{ form.can_manage_products.id_for_label }}',
+                '{{ form.can_manage_orders.id_for_label }}',
+                '{{ form.can_manage_customers.id_for_label }}',
+                '{{ form.can_manage_discounts.id_for_label }}',
+                '{{ form.can_manage_content.id_for_label }}'
+            ];
+            
+            permissions.forEach(id => {
+                if (document.getElementById(id)) {
+                    document.getElementById(id).checked = true;
+                    document.getElementById(id).disabled = true;
+                }
+            });
+        }
+    }
+    
+    roleRadios.forEach(radio => {
+        radio.addEventListener('change', updateRoleFields);
+    });
+    
+    // Initialiser les champs en fonction du rôle sélectionné
+    updateRoleFields();
+    
+    // Gestion des adresses
+    const addAddressBtn = document.getElementById('addAddressBtn');
+    const addressModal = new bootstrap.Modal(document.getElementById('addressModal'));
+    const deleteAddressModal = new bootstrap.Modal(document.getElementById('deleteAddressModal'));
+    const addressForm = document.getElementById('addressForm');
+    let currentAddressId = null;
+    
+    // Ouvrir la modale d'ajout d'adresse
+    if (addAddressBtn) {
+        addAddressBtn.addEventListener('click', function() {
+            document.getElementById('addressModalLabel').textContent = "{% trans 'Ajouter une adresse' %}";
+            addressForm.reset();
+            document.getElementById('addressId').value = '';
+            currentAddressId = null;
+            addressModal.show();
+        });
+    }
+    
+    // Éditer une adresse existante
+    document.querySelectorAll('.edit-address').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const addressId = this.getAttribute('data-address-id');
+            const addressCard = this.closest('.address-card');
+            
+            // Remplir le formulaire avec les données de l'adresse
+            // Note: Dans une implémentation réelle, vous devriez récupérer ces données via AJAX
+            // ou les stocker dans des attributs data-* sur le bouton
+            document.getElementById('addressModalLabel').textContent = "{% trans 'Modifier l\'adresse' %}";
+            document.getElementById('addressId').value = addressId;
+            document.getElementById('fullName').value = addressCard.querySelector('h6').textContent.trim().replace(' (Par défaut)', '');
+            // ... Remplir les autres champs du formulaire ...
+            
+            currentAddressId = addressId;
+            addressModal.show();
+        });
+    });
+    
+    // Confirmer la suppression d'une adresse
+    document.querySelectorAll('.delete-address').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentAddressId = this.getAttribute('data-address-id');
+            deleteAddressModal.show();
+        });
+    });
+    
+    document.getElementById('confirmDeleteAddress').addEventListener('click', function() {
+        if (currentAddressId) {
+            // Supprimer l'adresse (dans une vraie application, vous feriez un appel AJAX ici)
+            const addressCard = document.querySelector(`.address-card[data-address-id="${currentAddressId}"]`);
+            if (addressCard) {
+                addressCard.remove();
+                
+                // Vérifier s'il reste des adresses
+                if (!document.querySelector('.address-card')) {
+                    document.getElementById('noAddressesMessage').classList.remove('d-none');
+                }
+            }
+            
+            deleteAddressModal.hide();
+        }
+    });
+    
+    // Soumission du formulaire d'adresse
+    if (addressForm) {
+        addressForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Récupérer les données du formulaire
+            const formData = new FormData(this);
+            const addressId = formData.get('address_id');
+            
+            // Ici, vous devriez faire un appel AJAX pour sauvegarder l'adresse
+            // Pour cet exemple, nous allons simplement mettre à jour l'interface
+            
+            if (addressId) {
+                // Mise à jour d'une adresse existante
+                const addressCard = document.querySelector(`.address-card[data-address-id="${addressId}"]`);
+                if (addressCard) {
+                    // Mettre à jour la carte d'adresse avec les nouvelles données
+                    // ...
+                }
+            } else {
+                // Ajout d'une nouvelle adresse
+                const newAddressId = 'new-' + Date.now();
+                const isDefault = formData.get('is_default') === 'on';
+                
+                const addressCard = document.createElement('div');
+                addressCard.className = 'card mb-3 address-card';
+                addressCard.setAttribute('data-address-id', newAddressId);
+                
+                addressCard.innerHTML = `
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h6 class="mb-1">
+                                    ${formData.get('address_type') === 'home' ? 'Domicile' : 
+                                      formData.get('address_type') === 'work' ? 'Travail' : 'Autre'}
+                                    ${isDefault ? '<span class="badge bg-success ms-2">Par défaut</span>' : ''}
+                                </h6>
+                                <p class="mb-0 text-muted small">
+                                    ${formData.get('street_address1')}<br>
+                                    ${formData.get('street_address2') ? formData.get('street_address2') + '<br>' : ''}
+                                    ${formData.get('postal_code')} ${formData.get('city')}<br>
+                                    ${document.getElementById('country').options[document.getElementById('country').selectedIndex].text}
+                                </p>
+                            </div>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-sm btn-outline-secondary edit-address" data-address-id="${newAddressId}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger delete-address" data-address-id="${newAddressId}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="default_address" 
+                                   id="default_address_${newAddressId}" value="${newAddressId}" ${isDefault ? 'checked' : ''}>
+                            <label class="form-check-label" for="default_address_${newAddressId}">
+                                Définir comme adresse par défaut
+                            </label>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('addressesContainer').appendChild(addressCard);
+                document.getElementById('noAddressesMessage').classList.add('d-none');
+                
+                // Ajouter les écouteurs d'événements aux nouveaux boutons
+                addressCard.querySelector('.edit-address').addEventListener('click', function() {
+                    // Implémenter l'édition de l'adresse
+                });
+                
+                addressCard.querySelector('.delete-address').addEventListener('click', function() {
+                    currentAddressId = this.getAttribute('data-address-id');
+                    deleteAddressModal.show();
+                });
+            }
+            
+            // Fermer la modale
+            addressModal.hide();
+        });
+    }
+    
+    // Mise à jour en temps réel du nom complet et de l'email dans l'en-tête
+    const firstNameInput = document.getElementById('{{ form.first_name.id_for_label }}');
+    const lastNameInput = document.getElementById('{{ form.last_name.id_for_label }}');
+    const emailInput = document.getElementById('{{ form.email.id_for_label }}');
+    const fullNamePreview = document.getElementById('fullNamePreview');
+    const emailPreview = document.getElementById('emailPreview');
+    
+    function updatePreview() {
+        const firstName = firstNameInput ? firstNameInput.value.trim() : '';
+        const lastName = lastNameInput ? lastNameInput.value.trim() : '';
+        const email = emailInput ? emailInput.value.trim() : '';
+        
+        if (fullNamePreview) {
+            if (firstName || lastName) {
+                fullNamePreview.textContent = `${firstName} ${lastName}`.trim();
+            } else {
+                fullNamePreview.textContent = "{% trans 'Nouvel utilisateur' %}";
+            }
+        }
+        
+        if (emailPreview && email) {
+            emailPreview.textContent = email;
+        }
+    }
+    
+    if (firstNameInput) firstNameInput.addEventListener('input', updatePreview);
+    if (lastNameInput) lastNameInput.addEventListener('input', updatePreview);
+    if (emailInput) emailInput.addEventListener('input', updatePreview);
+    
+    // Initialiser l'aperçu
+    updatePreview();
+    
+    // Validation du formulaire
+    const userForm = document.getElementById('userForm');
+    if (userForm) {
+        userForm.addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Vérifier que les mots de passe correspondent
+            const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+            const password2 = document.getElementById('{{ form.password2.id_for_label }}');
+            
+            if (password1 && password2) {
+                // Si l'un des champs de mot de passe est rempli, les deux doivent l'être
+                if ((password1.value || password2.value) && password1.value !== password2.value) {
+                    isValid = false;
+                    
+                    // Afficher une alerte d'erreur
+                    if (!document.getElementById('passwordMismatchAlert')) {
+                        const alertDiv = document.createElement('div');
+                        alertDiv.id = 'passwordMismatchAlert';
+                        alertDiv.className = 'alert alert-danger mt-3';
+                        alertDiv.role = 'alert';
+                        alertDiv.innerHTML = '<i class="fas fa-exclamation-triangle me-2"></i> Les mots de passe ne correspondent pas.';
+                        
+                        const submitButton = userForm.querySelector('button[type="submit"]');
+                        userForm.insertBefore(alertDiv, submitButton);
+                    }
+                    
+                    // Faire défiler jusqu'à l'alerte
+                    document.getElementById('passwordMismatchAlert').scrollIntoView({ behavior: 'smooth' });
+                } else {
+                    // Supprimer l'alerte si elle existe
+                    const existingAlert = document.getElementById('passwordMismatchAlert');
+                    if (existingAlert) {
+                        existingAlert.remove();
+                    }
+                }
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

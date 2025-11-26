@@ -1,0 +1,275 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n humanize %}
+
+{% block title %}{% trans 'Gestion des commandes' %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0">{% trans 'Gestion des commandes' %}</h1>
+                <div>
+                    <a href="{% url 'boutique:admin_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour au tableau de bord' %}
+                    </a>
+                </div>
+            </div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_dashboard' %}">{% trans 'Tableau de bord' %}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{% trans 'Commandes' %}</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Filtres et statistiques -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase small">{% trans 'Commandes du jour' %}</h6>
+                    <h2 class="mb-0">{{ today_orders.count }}</h2>
+                    <p class="mb-0 small">{{ today_total|floatformat:2 }} €</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase small">{% trans 'Commandes du mois' %}</h6>
+                    <h2 class="mb-0">{{ month_orders.count }}</h2>
+                    <p class="mb-0 small">{{ month_total|floatformat:2 }} €</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-dark">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase small">{% trans 'En attente' %}</h6>
+                    <h2 class="mb-0">{{ pending_orders.count }}</h2>
+                    <p class="mb-0 small">{% trans 'À traiter' %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h6 class="card-title text-uppercase small">{% trans 'Total commandes' %}</h6>
+                    <h2 class="mb-0">{{ total_orders }}</h2>
+                    <p class="mb-0 small">{{ total_revenue|floatformat:2 }} €</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtres et recherche -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label for="status" class="form-label">{% trans 'Statut' %}</label>
+                <select name="status" id="status" class="form-select">
+                    <option value="">{% trans 'Tous les statuts' %}</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if request.GET.status == value|stringformat:'s' %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="date_from" class="form-label">{% trans 'Du' %}</label>
+                <input type="date" name="date_from" id="date_from" class="form-control" 
+                       value="{{ request.GET.date_from }}">
+            </div>
+            <div class="col-md-3">
+                <label for="date_to" class="form-label">{% trans 'Au' %}</label>
+                <input type="date" name="date_to" id="date_to" class="form-control" 
+                       value="{{ request.GET.date_to }}">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-filter me-1"></i> {% trans 'Filtrer' %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des commandes -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        {% if orders %}
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>{% trans 'Commande' %}</th>
+                            <th>{% trans 'Client' %}</th>
+                            <th>{% trans 'Date' %}</th>
+                            <th class="text-end">{% trans 'Total' %}</th>
+                            <th class="text-center">{% trans 'Statut' %}</th>
+                            <th class="text-end">{% trans 'Actions' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'boutique:admin_order_detail' order.pk %}" class="text-decoration-none">
+                                    <strong>#{{ order.id|stringformat:"06d" }}</strong>
+                                </a>
+                                <div class="small text-muted">
+                                    {% if order.delivery_method == 'delivery' %}
+                                        <i class="fas fa-truck me-1"></i> {{ order.get_delivery_method_display }}
+                                    {% else %}
+                                        <i class="fas fa-store me-1"></i> {{ order.get_delivery_method_display }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if order.user %}
+                                    <a href="{% url 'boutique:admin_user_detail' order.user.pk %}" class="text-decoration-none">
+                                        {{ order.get_full_name }}
+                                    </a>
+                                {% else %}
+                                    {{ order.get_full_name }}
+                                {% endif %}
+                                <div class="small text-muted">{{ order.email }}</div>
+                            </td>
+                            <td>
+                                {{ order.created_at|date:"d/m/Y" }}
+                                <div class="small text-muted">{{ order.created_at|time:"H:i" }}</div>
+                            </td>
+                            <td class="text-end">
+                                {{ order.get_total_cost|floatformat:2 }} €
+                                <div class="small text-muted">
+                                    {% if order.paid %}
+                                        <span class="text-success"><i class="fas fa-check-circle me-1"></i> {% trans 'Payée' %}</span>
+                                    {% else %}
+                                        <span class="text-danger"><i class="fas fa-times-circle me-1"></i> {% trans 'Non payée' %}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge {% if order.status == 'en_attente' %}bg-warning text-dark
+                                                    {% elif order.status == 'payee' %}bg-info
+                                                    {% elif order.status == 'en_preparation' %}bg-primary
+                                                    {% elif order.status == 'expediee' or order.status == 'en_livraison' %}bg-info
+                                                    {% elif order.status == 'livree' or order.status == 'recuperee' %}bg-success
+                                                    {% elif order.status == 'annulee' %}bg-danger
+                                                    {% else %}bg-secondary{% endif %}">
+                                    {{ order.get_status_display }}
+                                </span>
+                                {% if order.tracking_number %}
+                                    <div class="small mt-1">
+                                        <i class="fas fa-truck me-1"></i> {{ order.tracking_number|truncatechars:15 }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group" role="group">
+                                    <a href="{% url 'boutique:admin_order_detail' order.pk %}" 
+                                       class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip" 
+                                       title="{% trans 'Voir les détails' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'boutique:admin_order_delete' order.pk %}" 
+                                       class="btn btn-sm btn-outline-danger"
+                                       data-bs-toggle="tooltip" 
+                                       title="{% trans 'Supprimer' %}">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="card-footer bg-white">
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center mb-0">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                    &laquo; {% trans 'Première' %}
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                    {% trans 'Précédent' %}
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ num }}</span>
+                                </li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ num }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                        {{ num }}
+                                    </a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                    {% trans 'Suivant' %}
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.date_from %}&date_from={{ request.GET.date_from }}{% endif %}{% if request.GET.date_to %}&date_to={{ request.GET.date_to }}{% endif %}">
+                                    {% trans 'Dernière' %} &raquo;
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            </div>
+            {% endif %}
+            
+        {% else %}
+            <div class="text-center py-5">
+                <div class="mb-3">
+                    <i class="fas fa-shopping-cart fa-4x text-muted"></i>
+                </div>
+                <h5 class="text-muted">{% trans 'Aucune commande trouvée' %}</h5>
+                <p class="text-muted">
+                    {% if request.GET.status or request.GET.date_from or request.GET.date_to %}
+                        {% trans 'Aucune commande ne correspond à vos critères de recherche.' %}
+                    {% else %}
+                        {% trans 'Aucune commande n\'a encore été passée.' %}
+                    {% endif %}
+                </p>
+                <a href="{% url 'boutique:admin_order_list' %}" class="btn btn-outline-primary mt-3">
+                    <i class="fas fa-sync-alt me-1"></i> {% trans 'Réinitialiser les filtres' %}
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Initialisation des tooltips
+    document.addEventListener('DOMContentLoaded', function() {
+        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+            return new bootstrap.Tooltip(tooltipTriggerEl);
+        });
+    });
+</script>
+{% endblock %}

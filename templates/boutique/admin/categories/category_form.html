@@ -1,0 +1,193 @@
+{% extends 'boutique/admin/base.html' %}
+{% load i18n static %}
+
+{% block title %}{% if form.instance.pk %}{% trans 'Modifier la catégorie' %}{% else %}{% trans 'Ajouter une catégorie' %}{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            {% if form.instance.pk %}
+                                {% trans 'Modifier la catégorie' %}
+                            {% else %}
+                                {% trans 'Ajouter une nouvelle catégorie' %}
+                            {% endif %}
+                        </h5>
+                        <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour' %}
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row mb-3">
+                            <div class="col-md-8">
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                                        {{ form.name.label }}
+                                        {% if form.name.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {{ form.name }}
+                                    {% if form.name.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.name.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">{{ form.name.help_text }}</div>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.slug.id_for_label }}" class="form-label">
+                                        {{ form.slug.label }}
+                                        {% if form.slug.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    <div class="input-group">
+                                        {{ form.slug }}
+                                        <button class="btn btn-outline-secondary" type="button" id="generate-slug">
+                                            <i class="fas fa-sync-alt"></i>
+                                        </button>
+                                    </div>
+                                    {% if form.slug.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.slug.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">{{ form.slug.help_text }}</div>
+                                </div>
+                                
+                                <div class="form-group mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        {{ form.description.label }}
+                                    </label>
+                                    {{ form.description }}
+                                    {% if form.description.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.description.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">{% trans 'Image de la catégorie' %}</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        {% if form.instance.image %}
+                                            <img id="category-image-preview" src="{{ form.instance.image.url }}" 
+                                                 class="img-fluid mb-3" style="max-height: 200px; object-fit: contain;">
+                                        {% else %}
+                                            <div id="category-image-preview" class="bg-light d-flex align-items-center justify-content-center mb-3" 
+                                                 style="height: 200px; border: 1px dashed #ccc; border-radius: 4px;">
+                                                <div class="text-center p-3">
+                                                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                                    <p class="mb-0 text-muted small">{% trans 'Aucune image' %}</p>
+                                                </div>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <div class="form-group">
+                                            <label for="{{ form.image.id_for_label }}" class="form-label">
+                                                {{ form.image.label }}
+                                            </label>
+                                            {{ form.image }}
+                                            {% if form.image.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {{ form.image.errors.0 }}
+                                                </div>
+                                            {% endif %}
+                                            <div class="form-text">{{ form.image.help_text }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-grid gap-2 mt-3">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save me-1"></i>
+                                        {% if form.instance.pk %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Créer' %}{% endif %}
+                                    </button>
+                                    <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-outline-secondary">
+                                        <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Génération automatique du slug à partir du nom
+        const nameField = document.getElementById('{{ form.name.id_for_label }}');
+        const slugField = document.getElementById('{{ form.slug.id_for_label }}');
+        const generateSlugBtn = document.getElementById('generate-slug');
+        
+        function slugify(text) {
+            return text.toString().toLowerCase()
+                .replace(/\s+/g, '-')           // Remplace les espaces par des tirets
+                .replace(/[^\w\-]+/g, '')       // Supprime les caractères non alphanumériques
+                .replace(/\-\-+/g, '-')          // Remplace les tirets multiples par un seul
+                .replace(/^-+/, '')               // Supprime les tirets du début
+                .replace(/-+$/, '');              // Supprime les tirets de fin
+        }
+        
+        // Générer le slug lorsque le bouton est cliqué
+        if (generateSlugBtn) {
+            generateSlugBtn.addEventListener('click', function() {
+                if (nameField.value) {
+                    slugField.value = slugify(nameField.value);
+                }
+            });
+        }
+        
+        // Mise à jour de l'aperçu de l'image
+        const imageInput = document.getElementById('{{ form.image.id_for_label }}');
+        const imagePreview = document.getElementById('category-image-preview');
+        
+        if (imageInput && imagePreview) {
+            imageInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (imagePreview.tagName === 'IMG') {
+                            imagePreview.src = e.target.result;
+                        } else {
+                            // Si c'est une div de prévisualisation vide, la remplacer par une image
+                            const img = document.createElement('img');
+                            img.id = 'category-image-preview';
+                            img.src = e.target.result;
+                            img.className = 'img-fluid mb-3';
+                            img.style.maxHeight = '200px';
+                            img.style.objectFit = 'contain';
+                            imagePreview.parentNode.replaceChild(img, imagePreview);
+                        }
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

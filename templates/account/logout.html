@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% load i18n static %}
+
+{% block title %}{% trans "Déconnexion" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f8f9fa;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        padding-top: 40px;
+        padding-bottom: 40px;
+    }
+    
+    .logout-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 15px;
+        margin: auto;
+        text-align: center;
+    }
+    
+    .logout-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .logout-header {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+        padding: 2rem;
+    }
+    
+    .logout-body {
+        padding: 2rem;
+        background-color: white;
+    }
+    
+    .logout-icon {
+        font-size: 3rem;
+        color: #4e73df;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .btn-outline-secondary {
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2653d4;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logout-container">
+    <div class="logout-card">
+        <div class="logout-header">
+            {% if site_logo %}
+                <img src="{{ site_logo.url }}" alt="{{ site_name }}" height="40" class="mb-3">
+            {% else %}
+                <h3>{{ site_name }}</h3>
+            {% endif %}
+            <h1 class="h4 mb-0">{% trans 'Déconnexion' %}</h1>
+        </div>
+        
+        <div class="logout-body">
+            <div class="logout-icon">
+                <i class="fas fa-sign-out-alt"></i>
+            </div>
+            
+            <h2 class="h5 mb-4">{% trans 'Êtes-vous sûr de vouloir vous déconnecter ?' %}</h2>
+            
+            <form method="post" action="{% url 'account_logout' %}" class="mb-4">
+                {% csrf_token %}
+                {% if redirect_field_value %}
+                <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}"/>
+                {% endif %}
+                <button type="submit" class="btn btn-primary w-100 mb-3">
+                    {% trans 'Se déconnecter' %}
+                </button>
+                <a href="{% url 'boutique:home' %}" class="btn btn-outline-secondary w-100">
+                    {% trans 'Annuler' %}
+                </a>
+            </form>
+            
+            <p class="text-muted small mb-0">
+                {% trans 'Vous pourrez vous reconnecter à tout moment avec vos identifiants.' %}
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Redirection automatique après 5 secondes si l'utilisateur ne fait rien
+    let countdown = 5;
+    const countdownElement = document.getElementById('countdown');
+    
+    if (countdownElement) {
+        const countdownInterval = setInterval(function() {
+            countdown--;
+            countdownElement.textContent = countdown;
+            
+            if (countdown <= 0) {
+                clearInterval(countdownInterval);
+                document.querySelector('form[action*="logout"]').submit();
+            }
+        }, 1000);
+    }
+});
+</script>
+{% endblock %}
