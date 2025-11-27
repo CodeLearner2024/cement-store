@@ -1,72 +1,60 @@
 {% load static %}
-<!-- Tidio Chat Widget -->
-<script>
-    // Configuration de l'utilisateur
-    var _tidio = _tidio || [];
-    _tidio.push(['setUserToken', function(token) {
-        // Cette fonction sera appelée avec le token utilisateur
-    }]);
-
-    // Désactiver le son des nouvelles notifications
-    _tidio.push(['set', 'sound_notification', false]);
+<!-- Chatbot Personnalisé -->
+<div class="chatbot-container">
+    <div class="chatbot-toggle" id="chatbotToggle">
+        <i class="fas fa-comments"></i>
+        <span class="chatbot-notification"></span>
+    </div>
     
-    // Initialisation du widget
-    (function() {
-        var tidioScript = document.createElement('script');
-        tidioScript.src = '//code.tidio.co/VOTRE_CLE_PUBLIQUE.js';
-        tidioScript.async = true;
-        tidioScript.onload = function() {
-            // Une fois le widget chargé
-            if (window.tidioChatApi) {
-                // Masquer le bouton par défaut de Tidio
-                document.querySelectorAll('.tidio-chat-iframe, .tidio-chat-1sxa, .tidio-chat-1sx9, .tidio-chat-1q9').forEach(function(el) {
-                    el.style.display = 'none';
-                });
-                
-                // Configuration de l'utilisateur si connecté
-                {% if user.is_authenticated %}
-                window.tidioChatApi.setVisitorData({
-                    email: '{{ user.email|default:"" }}',
-                    name: '{{ user.get_full_name|default:user.username }}',
-                    // Autres données utilisateur si nécessaire
-                    fields: {
-                        user_id: '{{ user.id|default:"" }}',
-                        username: '{{ user.username|default:"" }}'
-                    }
-                });
-                {% endif %}
-                
-                // Message de bienvenue personnalisé
-                window.tidioChatApi.on('ready', function() {
-                    if (window.tidioChatApi.isOpen() === false) {
-                        window.tidioChatApi.messageFromOperator("Bonjour{% if user.is_authenticated %} {{ user.get_full_name|default:user.username }}{% endif %}, comment puis-je vous aider aujourd'hui ?");
-                    }
-                });
-            }
-        };
-        document.body.appendChild(tidioScript);
-    })();
-    
-    // Masquer sur les pages d'administration
-    if (window.location.pathname.includes('admin') || window.location.pathname.includes('checkout')) {
-        if (window.tidioChatApi) {
-            window.tidioChatApi.hide();
-        } else {
-            document.addEventListener('tidioChatReady', function() {
-                window.tidioChatApi.hide();
-            });
-        }
-    }
-</script>
+    <div class="chatbot-window" id="chatbotWindow">
+        <div class="chatbot-header">
+            <div class="chatbot-avatar">
+                <i class="fas fa-robot"></i>
+            </div>
+            <div class="chatbot-info">
+                <h4>Assistance Client</h4>
+                <span class="status-dot"></span>
+                <span class="status-text">En ligne</span>
+            </div>
+            <button class="chatbot-close" id="chatbotClose">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        
+        <div class="chatbot-messages" id="chatbotMessages">
+            <div class="chatbot-message bot">
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="message-content">
+                    <p>Bonjour{% if user.is_authenticated %} {{ user.get_full_name|default:user.username }}{% endif %}, comment puis-je vous aider aujourd'hui ?</p>
+                    <span class="message-time">Maintenant</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chatbot-input">
+            <input type="text" id="chatbotInput" placeholder="Tapez votre message..." autocomplete="off">
+            <button id="chatbotSend">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+</div>
 
 <style>
-    /* Style personnalisé pour le bouton du chat */
-    .chatbot-toggle {
+    /* Style de base du conteneur */
+    .chatbot-container {
         position: fixed;
         bottom: 30px;
         right: 30px;
         z-index: 9999;
-        background: #00C6FF; /* Dégradé de bleu Tidio */
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    /* Style du bouton de bascule */
+    .chatbot-toggle {
+        position: relative;
         background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
         color: white;
         width: 70px;
@@ -97,6 +85,393 @@
     .chatbot-toggle:hover i {
         transform: scale(1.1);
     }
+    
+    /* Notification de nouveau message */
+    .chatbot-notification {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 20px;
+        height: 20px;
+        background-color: #ff4757;
+        border-radius: 50%;
+        color: white;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 2px solid white;
+        display: none;
+    }
+    
+    /* Fenêtre de chat */
+    .chatbot-window {
+        position: absolute;
+        bottom: 90px;
+        right: 0;
+        width: 350px;
+        height: 500px;
+        background-color: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 30px rgba(0, 0, 0, 0.15);
+        display: none;
+        flex-direction: column;
+        overflow: hidden;
+        transform: translateY(20px);
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+    
+    .chatbot-window.active {
+        display: flex;
+        transform: translateY(0);
+        opacity: 1;
+    }
+    
+    /* En-tête du chat */
+    .chatbot-header {
+        padding: 15px 20px;
+        background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        position: relative;
+    }
+    
+    .chatbot-avatar {
+        width: 40px;
+        height: 40px;
+        background-color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 12px;
+        color: #0072FF;
+        font-size: 20px;
+    }
+    
+    .chatbot-info {
+        flex: 1;
+    }
+    
+    .chatbot-info h4 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    
+    .status-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        background-color: #2ecc71;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+    
+    .status-text {
+        font-size: 12px;
+        opacity: 0.9;
+    }
+    
+    .chatbot-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 18px;
+        cursor: pointer;
+        opacity: 0.8;
+        transition: opacity 0.2s;
+    }
+    
+    .chatbot-close:hover {
+        opacity: 1;
+    }
+    
+    /* Zone des messages */
+    .chatbot-messages {
+        flex: 1;
+        padding: 20px;
+        overflow-y: auto;
+        background-color: #f5f7fb;
+    }
+    
+    .chatbot-message {
+        display: flex;
+        margin-bottom: 15px;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    .chatbot-message.bot {
+        justify-content: flex-start;
+    }
+    
+    .chatbot-message.user {
+        justify-content: flex-end;
+    }
+    
+    .message-avatar {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background-color: #e3f2fd;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 10px;
+        color: #0072FF;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+    
+    .chatbot-message.user .message-avatar {
+        display: none;
+    }
+    
+    .message-content {
+        max-width: 70%;
+    }
+    
+    .chatbot-message.bot .message-content {
+        background-color: white;
+        padding: 10px 15px;
+        border-radius: 0 15px 15px 15px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    }
+    
+    .chatbot-message.user .message-content {
+        background-color: #0072FF;
+        color: white;
+        padding: 10px 15px;
+        border-radius: 15px 0 15px 15px;
+    }
+    
+    .message-content p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.5;
+    }
+    
+    .message-time {
+        display: block;
+        font-size: 10px;
+        color: #95a5a6;
+        margin-top: 5px;
+        text-align: right;
+    }
+    
+    .chatbot-message.user .message-time {
+        color: rgba(255, 255, 255, 0.7);
+    }
+    
+    /* Zone de saisie */
+    .chatbot-input {
+        padding: 15px;
+        background-color: white;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        align-items: center;
+    }
+    
+    .chatbot-input input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 1px solid #e0e0e0;
+        border-radius: 25px;
+        outline: none;
+        font-size: 14px;
+        transition: border-color 0.3s;
+    }
+    
+    .chatbot-input input:focus {
+        border-color: #0072FF;
+    }
+    
+    .chatbot-input button {
+        width: 45px;
+        height: 45px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #00C6FF 0%, #0072FF 100%);
+        color: white;
+        border: none;
+        margin-left: 10px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .chatbot-input button:hover {
+        background: linear-gradient(135deg, #00B2FF 0%, #0062E0 100%);
+        transform: translateY(-2px);
+    }
+    
+    /* Animations */
+    @keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(0, 114, 255, 0.4);
+        }
+        70% {
+            box-shadow: 0 0 0 10px rgba(0, 114, 255, 0);
+        }
+        100% {
+            box-shadow: 0 0 0 0 rgba(0, 114, 255, 0);
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Styles pour les écrans plus petits */
+    @media (max-width: 480px) {
+        .chatbot-container {
+            bottom: 20px;
+            right: 15px;
+        }
+        
+        .chatbot-toggle {
+            width: 60px;
+            height: 60px;
+        }
+        
+        .chatbot-window {
+            width: calc(100vw - 30px);
+            height: 70vh;
+            bottom: 80px;
+            right: 15px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const chatbotToggle = document.getElementById('chatbotToggle');
+        const chatbotWindow = document.getElementById('chatbotWindow');
+        const chatbotClose = document.getElementById('chatbotClose');
+        const chatbotInput = document.getElementById('chatbotInput');
+        const chatbotSend = document.getElementById('chatbotSend');
+        const chatbotMessages = document.getElementById('chatbotMessages');
+        
+        let isOpen = false;
+        
+        // Fonction pour ajouter un message au chat
+        function addMessage(message, isUser = false) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chatbot-message ${isUser ? 'user' : 'bot'}`;
+            
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            messageDiv.innerHTML = `
+                ${!isUser ? `
+                <div class="message-avatar">
+                    <i class="fas fa-robot"></i>
+                </div>` : ''}
+                <div class="message-content">
+                    <p>${message}</p>
+                    <span class="message-time">${time}</span>
+                </div>
+            `;
+            
+            chatbotMessages.appendChild(messageDiv);
+            chatbotMessages.scrollTop = chatbotMessages.scrollHeight;
+            
+            // Afficher la notification si la fenêtre est fermée
+            if (!isOpen && !isUser) {
+                const notification = document.querySelector('.chatbot-notification');
+                notification.style.display = 'flex';
+            }
+        }
+        
+        // Fonction pour gérer la réponse du bot
+        function handleBotResponse(message) {
+            // Simulation de délai pour une expérience plus naturelle
+            setTimeout(() => {
+                let response = "Je ne suis pas sûr de comprendre. Pouvez-vous reformuler votre question ?";
+                
+                // Réponses prédéfinies basées sur les mots-clés
+                const messageLower = message.toLowerCase();
+                
+                if (messageLower.includes('bonjour') || messageLower.includes('salut') || messageLower.includes('coucou')) {
+                    response = "Bonjour ! Comment puis-je vous aider aujourd'hui ?";
+                } else if (messageLower.includes('prix') || messageLower.includes('coût') || messageLower.includes('tarif')) {
+                    response = "Nos prix varient selon les produits. Pourriez-vous me préciser quel produit vous intéresse ?";
+                } else if (messageLower.includes('livraison') || messageLower.includes('expédition')) {
+                    response = "Nous proposons différentes options de livraison. La livraison standard est gratuite et prend 3-5 jours ouvrés.";
+                } else if (messageLower.includes('retour') || messageLower.includes('remboursement')) {
+                    response = "Vous avez 30 jours pour retourner un article non utilisé et dans son emballage d'origine pour un remboursement complet.";
+                } else if (messageLower.includes('contact') || messageLower.includes('contacter')) {
+                    response = "Vous pouvez nous contacter par email à contact@votreboutique.com ou par téléphone au 01 23 45 67 89.";
+                } else if (messageLower.includes('merci') || messageLower.includes('super') || messageLower.includes('parfait')) {
+                    response = "Je vous en prie ! N'hésitez pas si vous avez d'autres questions.";
+                } else if (messageLower.includes('au revoir') || messageLower.includes('à bientôt')) {
+                    response = "Au revoir ! N'hésitez pas à revenir si vous avez d'autres questions. Bonne journée !";
+                }
+                
+                addMessage(response);
+            }, 800);
+        }
+        
+        // Événement de bascule du chat
+        chatbotToggle.addEventListener('click', function() {
+            isOpen = !isOpen;
+            
+            if (isOpen) {
+                chatbotWindow.classList.add('active');
+                chatbotInput.focus();
+                
+                // Cacher la notification
+                const notification = document.querySelector('.chatbot-notification');
+                notification.style.display = 'none';
+            } else {
+                chatbotWindow.classList.remove('active');
+            }
+        });
+        
+        // Fermer le chat avec le bouton de fermeture
+        chatbotClose.addEventListener('click', function() {
+            isOpen = false;
+            chatbotWindow.classList.remove('active');
+        });
+        
+        // Envoyer un message avec le bouton
+        chatbotSend.addEventListener('click', function() {
+            const message = chatbotInput.value.trim();
+            if (message) {
+                addMessage(message, true);
+                handleBotResponse(message);
+                chatbotInput.value = '';
+            }
+        });
+        
+        // Envoyer un message avec la touche Entrée
+        chatbotInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                const message = chatbotInput.value.trim();
+                if (message) {
+                    addMessage(message, true);
+                    handleBotResponse(message);
+                    chatbotInput.value = '';
+                }
+            }
+        });
+        
+        // Message de bienvenue initial
+        if (chatbotMessages.children.length === 0) {
+            addMessage("Bonjour{% if user.is_authenticated %} {{ user.get_full_name|default:user.username }}{% endif %}, comment puis-je vous aider aujourd'hui ?");
+        }
+    });
+</script>
     
     /* Animation de pulsation */
     @keyframes pulse {

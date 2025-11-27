@@ -152,6 +152,42 @@ class Cart(models.Model):
     @property
     def total_quantity(self):
         return sum(item.quantity for item in self.items.all())
+        
+    @property
+    def get_subtotal(self):
+        return sum(item.total_price for item in self.items.all())
+        
+    @property
+    def discount_amount(self):
+        # À implémenter si vous avez un système de réduction
+        return 0
+        
+    @property
+    def discount_code(self):
+        # À implémenter si vous avez un système de code de réduction
+        return ""
+        
+    @property
+    def tax_rate(self):
+        # Taux de TVA en pourcentage
+        return 20  # 20% de TVA par défaut
+        
+    @property
+    def tax_amount(self):
+        # Montant de la TVA
+        return round(self.get_subtotal * (self.tax_rate / 100), 2)
+        
+    @property
+    def get_shipping_cost(self):
+        # Frais de livraison gratuits pour les commandes de plus de 100€, sinon 5.99€
+        if self.get_subtotal > 100:
+            return 0
+        return 5.99
+        
+    @property
+    def get_total(self):
+        # Total TTC (sous-total + frais de livraison)
+        return self.get_subtotal + self.get_shipping_cost
 
 
 class CartItem(models.Model):

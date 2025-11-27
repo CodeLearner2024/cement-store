@@ -25,12 +25,14 @@ urlpatterns = [
     path('panier/ajouter/<int:product_id>/', views.add_to_cart, name='add_to_cart'),
     path('panier/mettre-a-jour/<int:item_id>/', views.update_cart_item, name='update_cart_item'),
     path('panier/supprimer/<int:item_id>/', views.remove_from_cart, name='remove_from_cart'),
+    path('panier/vider/', views.clear_cart, name='clear_cart'),
     
-    # Commande
-    path('commande/', views.CheckoutView.as_view(), name='checkout'),
-    path('commande/succes/', views.PaymentSuccessView.as_view(), name='payment_success'),
-    path('commande/annulee/', views.PaymentCancelledView.as_view(), name='payment_cancelled'),
-    path('commande/webhook/', views.stripe_webhook, name='stripe_webhook'),
+    # Paiement
+    path('paiement/checkout/', views.CheckoutView.as_view(), name='checkout'),
+    path('paiement/<uuid:order_id>/', views.PaymentView.as_view(), name='payment'),
+    path('paiement/succes/<uuid:order_id>/', views.PaymentSuccessView.as_view(), name='payment_success'),
+    path('paiement/annule/', views.PaymentCancelledView.as_view(), name='payment_cancelled'),
+    path('paiement/webhook/', views.stripe_webhook, name='stripe_webhook'),
     
     # Historique des commandes
     path('mon-compte/commandes/', views.OrderHistoryView.as_view(), name='order_history'),

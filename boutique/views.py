@@ -1,22 +1,24 @@
-from django.shortcuts import render, get_object_or_404, redirect
+from django.shortcuts import render, get_object_or_404, redirect, reverse
 from django.views.generic import ListView, DetailView, View, TemplateView
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib import messages
-from django.utils import timezone
-from django.db.models import Q, Sum, Count, Avg
-from django.http import JsonResponse, HttpResponseRedirect
-from django.urls import reverse, reverse_lazy
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils.translation import gettext_lazy as _
-
+from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
+from django.db.models import Q, Count, Avg
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from decimal import Decimal
 import stripe
 
 from .models import Category, Product, Cart, CartItem, Order, OrderItem, Review
-from .forms import AddToCartForm, CheckoutForm, ReviewForm
+from .forms import AddToCartForm, PaymentForm, CheckoutForm
 
 # Configuration de Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -117,11 +119,22 @@ class CartView(View):
         
         if cart_id:
             cart = get_object_or_404(Cart, id=cart_id)
+            cart_items = cart.items.all().select_related('product')
         else:
             cart = Cart.objects.create()
             request.session['cart_id'] = str(cart.id)
+            cart_items = []
             
-        return render(request, 'boutique/cart.html', {'cart': cart})
+        # Calculer les totaux
+        cart_total = sum(item.total_price for item in cart_items)
+        cart_total_quantity = sum(item.quantity for item in cart_items)
+            
+        return render(request, 'boutique/cart.html', {
+            'cart': cart,
+            'cart_items': cart_items,
+            'cart_total': cart_total,
+            'cart_total_quantity': cart_total_quantity
+        })
 
 
 @require_POST
@@ -594,3 +607,341 @@ def stripe_webhook(request):
                 pass
     
     return JsonResponse({'status': 'success'})
+
+
+class CheckoutView(LoginRequiredMixin, View):
+    """Vue pour le processus de paiement"""
+    login_url = reverse_lazy('account_login')
+    
+    def get(self, request, *args, **kwargs):
+        cart_id = request.session.get('cart_id')
+        if not cart_id:
+            messages.warning(request, _("Votre panier est vide."))
+            return redirect('boutique:home')
+            
+        cart = get_object_or_404(Cart, id=cart_id)
+        cart_items = cart.items.all()
+        
+        if not cart_items.exists():
+            messages.warning(request, _("Votre panier est vide."))
+            return redirect('boutique:home')
+        
+        # Vérifier le stock des produits
+        for item in cart_items:
+            if item.quantity > item.product.stock:
+                messages.error(
+                    request, 
+                    _("Désolé, la quantité demandée pour %(product)s n'est plus disponible.") % 
+                    {'product': item.product.name}
+                )
+                return redirect('boutique:cart')
+        
+        # Initialiser le formulaire avec les données de l'utilisateur connecté
+        initial_data = {}
+        if request.user.is_authenticated:
+            initial_data = {
+                'first_name': request.user.first_name,
+                'last_name': request.user.last_name,
+                'email': request.user.email,
+            }
+            
+            # Ajouter l'adresse de l'utilisateur si elle existe
+            try:
+                profile = request.user.profile
+                if profile.phone:
+                    initial_data['phone'] = profile.phone
+                if profile.address:
+                    initial_data['address'] = profile.address
+                if profile.postal_code:
+                    initial_data['postal_code'] = profile.postal_code
+                if profile.city:
+                    initial_data['city'] = profile.city
+                if profile.country:
+                    initial_data['country'] = profile.country
+            except AttributeError:
+                pass
+        
+        # Initialiser les formulaires
+        checkout_form = CheckoutForm(initial=initial_data)
+        payment_form = PaymentForm()
+        
+        context = {
+            'cart': cart,
+            'cart_items': cart_items,
+            'form': checkout_form,  # Changé de 'checkout_form' à 'form' pour correspondre au template
+            'payment_form': payment_form,
+        }
+        
+        return render(request, 'boutique/checkout.html', context)
+    
+    def post(self, request, *args, **kwargs):
+        cart_id = request.session.get('cart_id')
+        if not cart_id:
+            messages.warning(request, _("Votre panier est vide."))
+            return redirect('boutique:home')
+            
+        cart = get_object_or_404(Cart, id=cart_id)
+        
+        # Vérifier si le panier n'est pas vide
+        cart_items = cart.items.all()
+        if not cart_items.exists():
+            messages.warning(request, _("Votre panier est vide."))
+            return redirect('boutique:cart')
+        
+        # Vérifier le stock des produits
+        for item in cart_items:
+            if item.quantity > item.product.stock:
+                messages.error(
+                    request, 
+                    _("Désolé, la quantité demandée pour %(product)s n'est plus disponible.") % 
+                    {'product': item.product.name}
+                )
+                return redirect('boutique:cart')
+        
+        checkout_form = CheckoutForm(request.POST or None)
+        payment_form = PaymentForm(request.POST or None)
+        
+        if checkout_form.is_valid() and payment_form.is_valid():
+            try:
+                # Créer la commande
+                order = checkout_form.save(commit=False)
+                order.user = request.user
+                order.total_amount = cart.get_total()
+                order.save()
+                
+                # Ajouter les articles de la commande
+                for item in cart_items:
+                    OrderItem.objects.create(
+                        order=order,
+                        product=item.product,
+                        price=item.product.price,
+                        quantity=item.quantity
+                    )
+                    
+                    # Mettre à jour le stock
+                    item.product.stock -= item.quantity
+                    item.product.save()
+                
+                # Vider le panier
+                cart.items.all().delete()
+                
+                # Créer un paiement Stripe
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                intent = stripe.PaymentIntent.create(
+                    amount=int(cart.get_total() * 100),  # Montant en centimes
+                    currency='eur',
+                    metadata={
+                        'order_id': order.id,
+                        'user_id': request.user.id
+                    }
+                )
+                
+                # Mettre à jour la commande avec l'ID de l'intention de paiement
+                order.stripe_payment_intent = intent.id
+                order.save()
+                
+                # Rediriger vers la page de paiement
+                return redirect('boutique:payment', order_id=order.id)
+                
+            except Exception as e:
+                messages.error(
+                    request, 
+                    _("Une erreur est survenue lors de la création de votre commande. Veuillez réessayer.")
+                )
+                logger.error(f"Erreur lors de la création de la commande: {str(e)}")
+                return redirect('boutique:checkout')
+        
+        # Si le formulaire n'est pas valide, réafficher le formulaire avec les erreurs
+        context = {
+            'cart': cart,
+            'cart_items': cart.items.all(),
+            'form': checkout_form,  # Changé de 'checkout_form' à 'form' pour correspondre au template
+            'payment_form': payment_form,
+        }
+        return render(request, 'boutique/checkout.html', context)
+
+
+class PaymentView(LoginRequiredMixin, View):
+    """Vue pour le traitement du paiement"""
+    login_url = reverse_lazy('account_login')
+    
+    def get(self, request, order_id, *args, **kwargs):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        
+        # Vérifier que la commande n'est pas déjà payée
+        if order.paid:
+            messages.warning(request, _("Cette commande a déjà été payée."))
+            return redirect('boutique:order_detail', order_id=order.id)
+        
+        # Initialiser le formulaire de paiement
+        payment_form = PaymentForm()
+        
+        context = {
+            'order': order,
+            'payment_form': payment_form,
+            'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
+        }
+        
+        return render(request, 'boutique/payment.html', context)
+    
+    def post(self, request, order_id, *args, **kwargs):
+        order = get_object_or_404(Order, id=order_id, user=request.user)
+        payment_form = PaymentForm(request.POST)
+        
+        if payment_form.is_valid():
+            try:
+                stripe.api_key = settings.STRIPE_SECRET_KEY
+                
+                # Créer un token de carte
+                token = stripe.Token.create(
+                    card={
+                        'number': payment_form.cleaned_data['card_number'],
+                        'exp_month': payment_form.cleaned_data['card_exp_month'],
+                        'exp_year': payment_form.cleaned_data['card_exp_year'],
+                        'cvc': payment_form.cleaned_data['card_cvv'],
+                    },
+                )
+                
+                # Créer un client Stripe
+                customer = stripe.Customer.create(
+                    email=order.email,
+                    source=token.id
+                )
+                
+                # Enregistrer le client pour les paiements futurs si demandé
+                if payment_form.cleaned_data['save_card'] and request.user.customer_id:
+                    request.user.customer_id = customer.id
+                    request.user.save()
+                
+                # Payer la commande
+                charge = stripe.Charge.create(
+                    customer=customer.id,
+                    amount=int(order.total * 100),  # Montant en centimes
+                    currency='eur',
+                    description=f'Paiement de la commande #{order.id}',
+                    metadata={'order_id': order.id}
+                )
+                
+                # Mettre à jour la commande
+                order.paid = True
+                order.payment_id = charge.id
+                order.save()
+                
+                # Vider le panier
+                cart_id = request.session.get('cart_id')
+                if cart_id:
+                    try:
+                        cart = Cart.objects.get(id=cart_id)
+                        cart.delete()
+                        del request.session['cart_id']
+                    except Cart.DoesNotExist:
+                        pass
+                
+                # Rediriger vers la page de confirmation
+                messages.success(request, _("Votre paiement a été traité avec succès !"))
+                return redirect('boutique:payment_success', order_id=order.id)
+                
+            except stripe.error.CardError as e:
+                body = e.json_body
+                err = body.get('error', {})
+                messages.error(request, f"Erreur de carte : {err.get('message')}")
+            except stripe.error.RateLimitError:
+                messages.error(request, _("Trop de requêtes. Veuillez réessayer plus tard."))
+            except stripe.error.InvalidRequestError as e:
+                messages.error(request, _("Requête invalide. Veuillez réessayer."))
+            except stripe.error.AuthenticationError:
+                messages.error(request, _("Erreur d'authentification avec le processeur de paiement."))
+            except stripe.error.APIConnectionError:
+                messages.error(request, _("Erreur de connexion au réseau. Veuillez vérifier votre connexion."))
+            except stripe.error.StripeError as e:
+                messages.error(request, _("Une erreur est survenue lors du traitement de votre paiement. Veuillez réessayer."))
+            except Exception as e:
+                messages.error(request, _("Une erreur inattendue est survenue. Veuillez réessayer."))
+                logger.error(f"Erreur lors du paiement: {str(e)}")
+        
+        # Si le formulaire n'est pas valide ou s'il y a une erreur, réafficher le formulaire
+        context = {
+            'order': order,
+            'payment_form': payment_form,
+            'stripe_public_key': settings.STRIPE_PUBLIC_KEY,
+        }
+        return render(request, 'boutique/payment.html', context)
+
+
+class PaymentSuccessView(LoginRequiredMixin, View):
+    """Vue pour la page de confirmation de paiement"""
+    login_url = reverse_lazy('account_login')
+    
+    def get(self, request, order_id, *args, **kwargs):
+        order = get_object_or_404(Order, id=order_id, user=request.user, paid=True)
+        
+        # Envoyer un email de confirmation (à implémenter)
+        # send_order_confirmation_email(order)
+        
+        context = {
+            'order': order,
+        }
+        return render(request, 'boutique/payment_success.html', context)
+
+
+class OrderHistoryView(LoginRequiredMixin, ListView):
+    """Vue pour l'historique des commandes"""
+    model = Order
+    template_name = 'boutique/order_history.html'
+    context_object_name = 'orders'
+    paginate_by = 10
+    
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user).order_by('-created_at')
+
+
+class OrderDetailView(LoginRequiredMixin, DetailView):
+    """Vue pour les détails d'une commande"""
+    model = Order
+    template_name = 'boutique/order_detail.html'
+    context_object_name = 'order'
+    
+    def get_queryset(self):
+        return Order.objects.filter(user=self.request.user)
+
+
+@require_http_methods(["POST"])
+def clear_cart(request):
+    cart_id = request.session.get('cart_id')
+    if cart_id:
+        try:
+            cart = Cart.objects.get(id=cart_id)
+            cart.items.all().delete()  # Supprimer tous les articles du panier
+            cart.delete()  # Supprimer le panier
+            del request.session['cart_id']  # Nettoyer la session
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': _("Le panier a été vidé avec succès."),
+                    'cart_empty': True,
+                    'cart_total': '0.00',
+                    'cart_total_quantity': 0
+                })
+            else:
+                messages.success(request, _("Le panier a été vidé avec succès."))
+                return redirect('boutique:cart')
+                
+        except Cart.DoesNotExist:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': _("Le panier est déjà vide.")
+                }, status=400)
+            else:
+                messages.warning(request, _("Le panier est déjà vide."))
+                return redirect('boutique:cart')
+    else:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': _("Aucun panier trouvé.")
+            }, status=400)
+        else:
+            messages.warning(request, _("Aucun panier trouvé."))
+            return redirect('boutique:cart')

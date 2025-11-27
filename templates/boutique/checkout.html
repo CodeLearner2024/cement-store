@@ -169,12 +169,13 @@
                             </div>
                         </div>
                         
+                        <!-- Option PayPal désactivée temporairement -->
                         <div class="mb-4">
                             <div class="form-check">
-                                <input class="form-check-input payment-option" type="radio" name="payment_method" id="paypal" value="paypal">
-                                <label class="form-check-label d-flex align-items-center" for="paypal">
+                                <input class="form-check-input payment-option" type="radio" name="payment_method" id="paypal" value="paypal" disabled>
+                                <label class="form-check-label d-flex align-items-center text-muted" for="paypal">
                                     <i class="fab fa-paypal fa-2x me-2"></i>
-                                    <span>Payer avec PayPal</span>
+                                    <span>Payer avec PayPal (bientôt disponible)</span>
                                 </label>
                             </div>
                             <div id="paypal-button-container" class="mt-3 d-none">
@@ -504,8 +505,9 @@ if (form) {
                 spinner.classList.add('d-none');
             }
         } else if (paymentMethodValue === 'paypal') {
-            // Rediriger vers PayPal ou gérer le paiement PayPal
-            window.location.href = "{% url 'boutique:paypal_payment' %}";
+            // Désactivé pour le moment
+            alert("Le paiement par PayPal n'est pas encore disponible. Veuillez choisir une autre méthode de paiement.");
+            return;
         } else {
             // Pour les autres méthodes de paiement, soumettre le formulaire normalement
             form.submit();

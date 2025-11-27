@@ -1,0 +1,178 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% trans 'Paiement sécurisé' %} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{% trans 'Paiement sécurisé' %}</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>{% trans 'Récapitulatif de commande' %}</h5>
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h6>{% trans 'Articles' %}</h6>
+                                    <ul class="list-group list-group-flush">
+                                        {% for item in cart_items %}
+                                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                                {{ item.quantity }}x {{ item.product.name }}
+                                                <span>{{ item.total_price }} €</span>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{% trans 'Sous-total' %}</strong>
+                                        <span>{{ cart.get_subtotal }} €</span>
+                                    </div>
+                                    {% if cart.discount_amount > 0 %}
+                                        <div class="d-flex justify-content-between text-success">
+                                            <strong>{% trans 'Réduction' %}</strong>
+                                            <span>-{{ cart.discount_amount }} €</span>
+                                        </div>
+                                    {% endif %}
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{% trans 'Frais de livraison' %}</strong>
+                                        <span>{{ cart.get_shipping_cost }} €</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between">
+                                        <strong>{% trans 'TVA (18%)' %}</strong>
+                                        <span>{{ cart.tax_amount }} €</span>
+                                    </div>
+                                    <hr>
+                                    <div class="d-flex justify-content-between">
+                                        <h5>{% trans 'Total' %}</h5>
+                                        <h5>{{ cart.get_total }} €</h5>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h5>{% trans 'Informations de paiement' %}</h5>
+                            <div class="card">
+                                <div class="card-body">
+                                    <form id="payment-form" method="post" action="{% url 'boutique:process_payment' %}">
+                                        {% csrf_token %}
+                                        
+                                        <!-- Affichage des erreurs de formulaire -->
+                                        {% if payment_form.errors %}
+                                            <div class="alert alert-danger">
+                                                {% for field in payment_form %}
+                                                    {% for error in field.errors %}
+                                                        <p>{{ error }}</p>
+                                                    {% endfor %}
+                                                {% endfor %}
+                                                {% for error in payment_form.non_field_errors %}
+                                                    <p>{{ error }}</p>
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                        
+                                        <!-- Champ pour afficher les erreurs de carte -->
+                                        <div id="card-errors" class="alert alert-danger d-none" role="alert"></div>
+                                        
+                                        <!-- Champs du formulaire de paiement -->
+                                        <div class="mb-3">
+                                            {{ payment_form.card_number.label_tag }}
+                                            <div id="card-element" class="form-control">
+                                                <!-- Un élément Stripe sera inséré ici -->
+                                            </div>
+                                            <small class="form-text text-muted">
+                                                {% trans 'Ex: 4242 4242 4242 4242' %}
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="row">
+                                            <div class="col-md-6 mb-3">
+                                                {{ payment_form.card_exp_month.label_tag }}
+                                                {{ payment_form.card_exp_month }}
+                                            </div>
+                                            <div class="col-md-6 mb-3">
+                                                {{ payment_form.card_exp_year.label_tag }}
+                                                {{ payment_form.card_exp_year }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            {{ payment_form.card_cvv.label_tag }}
+                                            {{ payment_form.card_cvv }}
+                                            <small class="form-text text-muted">
+                                                {% trans 'Les 3 ou 4 chiffres au dos de votre carte' %}
+                                            </small>
+                                        </div>
+                                        
+                                        <div class="form-check mb-3">
+                                            {{ payment_form.save_card }}
+                                            <label class="form-check-label" for="{{ payment_form.save_card.id_for_label }}">
+                                                {{ payment_form.save_card.label }}
+                                            </label>
+                                        </div>
+                                        
+                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                        
+                                        <button type="submit" id="submit-button" class="btn btn-primary btn-lg btn-block">
+                                            <i class="fas fa-lock me-2"></i>{% trans 'Payer' %} {{ cart.get_total }} €
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<!-- Inclure le code JavaScript de Stripe -->
+{{ payment_form.get_js|safe }}
+
+<!-- Style personnalisé pour les éléments de carte Stripe -->
+<style>
+    .StripeElement {
+        box-sizing: border-box;
+        height: 40px;
+        padding: 10px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background-color: white;
+    }
+    
+    .StripeElement--focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .StripeElement--invalid {
+        border-color: #fa755a;
+    }
+    
+    .StripeElement--webkit-autofill {
+        background-color: #fefde5 !important;
+    }
+    
+    /* Style pour le bouton de soumission désactivé */
+    button:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+    }
+</style>
+{% endblock %}
