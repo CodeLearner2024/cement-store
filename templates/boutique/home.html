@@ -3,19 +3,86 @@
 
 {% block title %}Bienvenue sur Ma Boutique en Ligne{% endblock %}
 
+{% block extra_css %}
+<style>
+    .category-selector {
+        margin-bottom: 1rem;
+    }
+    .category-selector select {
+        padding: 0.5rem;
+        border-radius: 0.25rem;
+        border: 1px solid #dee2e6;
+        width: 100%;
+        max-width: 250px;
+        margin: 0 auto;
+        display: block;
+        font-size: 0.9rem;
+    }
+    
+    .hero-section {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        border-radius: 0 0 2rem 2rem;
+        margin-top: -1.5rem;
+        padding-top: 3rem;
+        padding-bottom: 3rem;
+    }
+    
+    .icon-box {
+        font-size: 1.5rem;
+        margin: 0 auto 1.5rem;
+    }
+    
+    .card {
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    .btn {
+        transition: all 0.3s;
+    }
+    
+    .btn-outline-light:hover {
+        color: #4e73df !important;
+        background-color: #fff;
+    }
+    
+    .category-card {
+        overflow: hidden;
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
+    }
+    
+    .category-card img {
+        transition: transform 0.5s;
+    }
+    
+    .category-card:hover img {
+        transform: scale(1.05);
+    }
+    
+    .product-card .btn {
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .product-card:hover .btn {
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Bannière principale -->
 <div class="hero-section bg-primary text-white py-5 mb-5">
     <div class="container">
         <div class="row align-items-center">
             <div class="col-lg-6">
-                <h1 class="display-4 fw-bold mb-3">Bienvenue sur Ma Boutique</h1>
-                <p class="lead mb-4">Découvrez notre sélection de produits de qualité à des prix imbattables.</p>
-                <a href="{% url 'boutique:product_list' %}" class="btn btn-light btn-lg px-4 me-2">
-                    Voir les produits <i class="fas fa-arrow-right ms-2"></i>
-                </a>
-                <a href="#featured-categories" class="btn btn-outline-light btn-lg px-4">
-                    Catégories <i class="fas fa-tags ms-2"></i>
+                <a href="{% url 'boutique:product_list' %}" class="btn btn-light btn-lg px-4 me-2 mb-2">
+                    Voir nos produits <i class="fas fa-arrow-right ms-2"></i>
                 </a>
             </div>
             <div class="col-lg-6 d-none d-lg-block">
@@ -25,40 +92,55 @@
     </div>
 </div>
 
-<!-- Catégories mises en avant -->
-<section id="featured-categories" class="mb-5">
+<!-- Produits populaires -->
+<!-- À propos de nous -->
+<section class="mb-5 py-5">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h2 class="h3 mb-0">Nos catégories</h2>
-            <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-primary">
-                Voir tout <i class="fas fa-arrow-right ms-1"></i>
-            </a>
-        </div>
-        
-        <div class="row">
-            {% for category in featured_categories|slice:":4" %}
-            <div class="col-md-3 col-6 mb-4">
-                <a href="{% url 'boutique:product_list_by_category' category_slug=category.slug %}" class="text-decoration-none">
-                    <div class="card category-card h-100">
-                        {% if category.image %}
-                            <img src="{{ category.image.url }}" class="card-img" alt="{{ category.name }}">
-                        {% else %}
-                            <img src="https://via.placeholder.com/300x200" class="card-img" alt="{{ category.name }}">
-                        {% endif %}
-                        <div class="card-img-overlay d-flex align-items-end">
-                            <div class="w-100 text-center p-3" style="background: rgba(0,0,0,0.6);">
-                                <h5 class="card-title text-white mb-0">{{ category.name }}</h5>
-                                <small class="text-white-50">{{ category.products.count }} produits</small>
+        <div class="row align-items-center">
+            <div class="col-lg-6 mb-4 mb-lg-0">
+                <h2 class="h1 mb-4">À propos de nous</h2>
+                <p class="lead">Votre partenaire de confiance à Bujumbura pour des matériaux de construction de qualité supérieure.</p>
+                <p>Fondée au cœur de Bujumbura, notre entreprise s'engage à fournir des matériaux de construction de première qualité à des prix compétitifs. Notre équipe d'experts locaux est à votre écoute pour vous conseiller et vous accompagner dans tous vos projets de construction et de rénovation.</p>
+                <div class="row g-3 mt-4">
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="h6 mb-1">Produits de qualité</h5>
+                                <p class="small text-muted mb-0">Sélection rigoureuse de fournisseurs locaux et internationaux</p>
                             </div>
                         </div>
                     </div>
-                </a>
+                    <div class="col-md-6">
+                        <div class="d-flex">
+                            <div class="me-3 text-primary">
+                                <i class="fas fa-truck fa-2x"></i>
+                            </div>
+                            <div>
+                                <h5 class="h6 mb-1">Livraison rapide</h5>
+                                <p class="small text-muted mb-0">Service de livraison fiable dans toute la ville de Bujumbura</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <a href="#" class="btn btn-primary me-2">En savoir plus</a>
+                    <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-primary">Voir nos produits</a>
+                </div>
             </div>
-            {% empty %}
-            <div class="col-12">
-                <div class="alert alert-info">Aucune catégorie disponible pour le moment.</div>
+            <div class="col-lg-6">
+                <div class="position-relative">
+                    <img src="https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1053&q=80" 
+                         alt="Matériaux de construction à Bujumbura" 
+                         class="img-fluid rounded-3 shadow">
+                    <div class="position-absolute bottom-0 start-0 bg-primary text-white p-3 m-3 rounded">
+                        <h4 class="h5 mb-0">Depuis 2010</h4>
+                        <p class="small mb-0">Au service de Bujumbura</p>
+                    </div>
+                </div>
             </div>
-            {% endfor %}
         </div>
     </div>
 </section>
@@ -252,62 +334,4 @@
         </div>
     </div>
 </section>
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    .hero-section {
-        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-        border-radius: 0 0 2rem 2rem;
-        margin-top: -1.5rem;
-        padding-top: 3rem;
-        padding-bottom: 3rem;
-    }
-    
-    .icon-box {
-        font-size: 1.5rem;
-        margin: 0 auto 1.5rem;
-    }
-    
-    .card {
-        transition: transform 0.3s, box-shadow 0.3s;
-    }
-    
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.1) !important;
-    }
-    
-    .btn {
-        transition: all 0.3s;
-    }
-    
-    .btn-outline-light:hover {
-        color: #4e73df !important;
-        background-color: #fff;
-    }
-    
-    .category-card {
-        overflow: hidden;
-        border: none;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.1);
-    }
-    
-    .category-card img {
-        transition: transform 0.5s;
-    }
-    
-    .category-card:hover img {
-        transform: scale(1.05);
-    }
-    
-    .product-card .btn {
-        opacity: 0;
-        transition: opacity 0.3s;
-    }
-    
-    .product-card:hover .btn {
-        opacity: 1;
-    }
-</style>
 {% endblock %}

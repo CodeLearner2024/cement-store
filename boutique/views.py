@@ -33,9 +33,10 @@ class HomeView(ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['featured_categories'] = Category.objects.annotate(
+        context['all_categories'] = Category.objects.annotate(
             num_products=Count('products')
-        ).filter(num_products__gt=0).order_by('-created_at')[:6]
+        ).filter(num_products__gt=0).order_by('name')
+        context['featured_categories'] = context['all_categories'][:6]  # Garder les catégories en vedette pour d'autres parties du site
         return context
 
 
@@ -46,7 +47,8 @@ class ProductListView(ListView):
     paginate_by = 12
 
     def get_queryset(self):
-        queryset = Product.objects.filter(available=True)
+        # Par défaut, trier par date de création (du plus récent au plus ancien)
+        queryset = Product.objects.filter(available=True).order_by('-created_at')
         
         # Filtrage par catégorie
         category_slug = self.kwargs.get('category_slug')
@@ -62,17 +64,6 @@ class ProductListView(ListView):
                 Q(description__icontains=query) |
                 Q(category__name__icontains=query)
             )
-        
-        # Tri
-        sort_by = self.request.GET.get('sort_by', 'newest')
-        if sort_by == 'price_asc':
-            queryset = queryset.order_by('price')
-        elif sort_by == 'price_desc':
-            queryset = queryset.order_by('-price')
-        elif sort_by == 'name':
-            queryset = queryset.order_by('name')
-        else:  # newest
-            queryset = queryset.order_by('-created_at')
             
         return queryset
     
@@ -80,7 +71,6 @@ class ProductListView(ListView):
         context = super().get_context_data(**kwargs)
         context['categories'] = Category.objects.all()
         context['current_category'] = self.kwargs.get('category_slug')
-        context['sort_by'] = self.request.GET.get('sort_by', 'newest')
         context['q'] = self.request.GET.get('q', '')
         return context
 
@@ -176,14 +166,63 @@ def update_cart_item(request, item_id):
             if quantity > 0:
                 cart_item.quantity = quantity
                 cart_item.save()
-                messages.success(request, _("La quantité a été mise à jour."))
+                
+                # Calculer les totaux mis à jour
+                cart = cart_item.cart
+                cart_items = cart.items.all()
+                cart_total = sum(item.total_price for item in cart_items)
+                cart_total_quantity = sum(item.quantity for item in cart_items)
+                
+                response_data = {
+                    'success': True,
+                    'quantity': cart_item.quantity,
+                    'item_total': str(cart_item.total_price),
+                    'cart_total': str(cart_total),
+                    'cart_total_quantity': cart_total_quantity,
+                    'message': _("La quantité a été mise à jour.")
+                }
+                
+                return JsonResponse(response_data)
+                
             else:
+                # Si la quantité est 0, supprimer l'article
+                cart = cart_item.cart
                 cart_item.delete()
-                messages.success(request, _("L'article a été retiré du panier."))
+                
+                # Vérifier si le panier est vide
+                cart_items = cart.items.all()
+                if not cart_items.exists():
+                    response_data = {
+                        'success': True,
+                        'quantity': 0,
+                        'cart_empty': True,
+                        'message': _("L'article a été retiré du panier.")
+                    }
+                else:
+                    # Calculer les totaux mis à jour
+                    cart_total = sum(item.total_price for item in cart_items)
+                    cart_total_quantity = sum(item.quantity for item in cart_items)
+                    
+                    response_data = {
+                        'success': True,
+                        'quantity': 0,
+                        'cart_total': str(cart_total),
+                        'cart_total_quantity': cart_total_quantity,
+                        'message': _("L'article a été retiré du panier.")
+                    }
+                
+                return JsonResponse(response_data)
+                
         except (ValueError, TypeError):
-            messages.error(request, _("Quantité invalide."))
+            return JsonResponse({
+                'success': False,
+                'message': _("Quantité invalide.")
+            }, status=400)
     
-    return redirect('boutique:cart')
+    return JsonResponse({
+        'success': False,
+        'message': _("Requête invalide.")
+    }, status=400)
 
 
 from django.views.decorators.http import require_http_methods

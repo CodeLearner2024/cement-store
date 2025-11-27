@@ -94,7 +94,13 @@ class Product(models.Model):
         return self.name
 
     def get_absolute_url(self):
-        return f'/boutique/product/{self.id}/{self.slug}/'
+        return f'/boutique/produits/{self.id}/{self.slug}/'
+        
+    def get_price_display(self):
+        """Retourne le prix formaté avec le symbole Fbu"""
+        if self.price == int(self.price):
+            return f"{int(self.price):,} Fbu".replace(",", " ")
+        return f"{self.price:,.2f} Fbu".replace(",", " ").replace(".", ",")
 
     @property
     def in_stock(self):

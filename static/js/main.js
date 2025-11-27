@@ -356,8 +356,26 @@ function initPopovers() {
     });
 }
 
+// Gestion de la sélection des catégories
+function initCategorySelector() {
+    const categorySelect = document.getElementById('categorySelect');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            const categorySlug = this.value;
+            if (categorySlug) {
+                // Rediriger vers la page de la catégorie sélectionnée
+                window.location.href = `/boutique/categorie/${categorySlug}/`;
+            } else {
+                // Si aucune catégorie n'est sélectionnée, aller à la liste des produits
+                window.location.href = '/boutique/produits/';
+            }
+        });
+    }
+}
+
 // Initialiser les composants au chargement du DOM
 document.addEventListener('DOMContentLoaded', function() {
+    initCategorySelector();
     initQuantitySelectors();
     initTooltips();
     initPopovers();

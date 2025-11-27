@@ -1,16 +1,19 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Mon panier{% endblock %}
+{% block title %}Panier - Bujumbura{% endblock %}
 
 {% block content %}
 <div class="container py-5">
     <div class="row">
         <div class="col-lg-8">
             <div class="d-flex justify-content-between align-items-center mb-4">
-                <h1 class="h3 mb-0">Votre panier</h1>
+                <div>
+    <h1 class="h3 mb-0">Votre panier à Bujumbura</h1>
+    <p class="text-muted small mb-0">Livraison disponible dans toute la ville de Bujumbura</p>
+</div>
                 <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left me-2"></i>Continuer mes achats
+                    <i class="fas fa-arrow-left me-2"></i>Poursuivre mes achats
                 </a>
             </div>
             
@@ -59,6 +62,7 @@
                 <div class="card mb-4">
                     <div class="card-body">
                         <h5 class="card-title mb-3">Code promo</h5>
+                        <p class="small text-muted mb-2">Bénéficiez de réductions exclusives à Bujumbura</p>
                         <form class="row g-2">
                             <div class="col">
                                 <input type="text" class="form-control" placeholder="Entrez votre code promo">
@@ -71,15 +75,19 @@
                 </div>
                 
                 <!-- Paiement sécurisé -->
-                <div class="card mb-4 d-none d-lg-block">
+                <div class="card mb-4">
                     <div class="card-body">
-                        <h5 class="card-title mb-3">Paiement sécurisé</h5>
-                        <div class="d-flex flex-wrap gap-2">
-                            <img src="{% static 'img/payment/visa.png' %}" alt="Visa" height="30" class="me-2">
-                            <img src="{% static 'img/payment/mastercard.png' %}" alt="Mastercard" height="30" class="me-2">
-                            <img src="{% static 'img/payment/paypal.png' %}" alt="PayPal" height="30" class="me-2">
-                            <img src="{% static 'img/payment/apple-pay.png' %}" alt="Apple Pay" height="30" class="me-2">
-                            <img src="{% static 'img/payment/google-pay.png' %}" alt="Google Pay" height="30">
+                        <h5 class="card-title mb-3">Paiement sécurisé à Bujumbura</h5>
+                        <p class="small text-muted mb-2">Méthodes de paiement acceptées :</p>
+                        <div class="d-flex flex-wrap align-items-center gap-3">
+                                <img src="{% static 'img/payment/visa.png' %}" alt="Visa" height="30" title="Visa" class="me-2">
+                                <img src="{% static 'img/payment/mastercard.png' %}" alt="Mastercard" height="30" title="Mastercard" class="me-2">
+                                <img src="{% static 'img/payment/mobile-money.png' %}" alt="Mobile Money" height="30" title="Mobile Money (Airtel Money, M-Pesa, Lumicash)" class="me-2">
+                                <img src="{% static 'img/payment/cash-on-delivery.png' %}" alt="Paiement à la livraison" height="30" title="Paiement à la livraison">
+                        </div>
+                        <div class="mt-3">
+                            <p class="small mb-1"><i class="fas fa-info-circle text-primary me-1"></i> Paiement sécurisé avec 2C2P</p>
+                            <p class="small mb-0"><i class="fas fa-truck text-primary me-1"></i> Livraison sous 24-48h à Bujumbura</p>
                         </div>
                     </div>
                 </div>
@@ -90,10 +98,18 @@
                     <div class="mb-4">
                         <i class="fas fa-shopping-cart fa-4x text-muted mb-3"></i>
                         <h3>Votre panier est vide</h3>
-                        <p class="text-muted">Parcourez nos catégories pour découvrir nos produits</p>
+                        <p class="text-muted">Découvrez notre sélection de produits disponibles à Bujumbura</p>
+                        <div class="mt-3">
+                            <p class="small text-muted">
+                                <i class="fas fa-truck text-primary me-1"></i> Livraison rapide dans toute la ville
+                            </p>
+                            <p class="small text-muted">
+                                <i class="fas fa-shield-alt text-primary me-1"></i> Paiement sécurisé
+                            </p>
+                        </div>
                     </div>
                     <a href="{% url 'boutique:product_list' %}" class="btn btn-primary">
-                        <i class="fas fa-store me-2"></i>Découvrir la boutique
+                        <i class="fas fa-store me-2"></i>Découvrir nos produits
                     </a>
                 </div>
             {% endif %}
@@ -290,6 +306,121 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Gestion des boutons d'augmentation/diminution des quantités
+        document.querySelectorAll('.quantity-increase').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.parentElement.querySelector('.quantity-input');
+                input.stepUp();
+                updateCartItem(input);
+            });
+        });
+
+        document.querySelectorAll('.quantity-decrease').forEach(button => {
+            button.addEventListener('click', function() {
+                const input = this.parentElement.querySelector('.quantity-input');
+                if (input.value > 1) {
+                    input.stepDown();
+                    updateCartItem(input);
+                }
+            });
+        });
+
+        // Mise à jour de la quantité lors d'un changement manuel
+        document.querySelectorAll('.quantity-input').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.value < 1) this.value = 1;
+                updateCartItem(this);
+            });
+        });
+    });
+
+    // Fonction pour mettre à jour la quantité d'un article via AJAX
+    function updateCartItem(input) {
+        const form = input.closest('form');
+        const url = form.action;
+        const formData = new FormData(form);
+        const csrfToken = formData.get('csrfmiddlewaretoken');
+        const itemId = form.action.split('/').filter(Boolean).pop();
+        const cartItem = input.closest('.cart-item');
+        
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': csrfToken
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Mettre à jour les totaux
+                if (data.cart_total) {
+                    document.querySelector('.cart-subtotal').textContent = data.cart_total + ' €';
+                    document.querySelector('.cart-total').textContent = data.cart_total + ' €';
+                }
+                
+                // Mettre à jour le total de l'article
+                const itemTotal = cartItem.querySelector('.item-total');
+                if (itemTotal && data.item_total) {
+                    itemTotal.textContent = data.item_total + ' €';
+                }
+                
+                // Mettre à jour le compteur du panier dans le header
+                const cartCount = document.querySelector('.cart-count');
+                if (cartCount && data.cart_total_quantity !== undefined) {
+                    cartCount.textContent = data.cart_total_quantity;
+                }
+                
+                // Afficher un message de succès
+                showAlert('La quantité a été mise à jour', 'success');
+                
+                // Si la quantité est devenue 0, supprimer l'article du DOM
+                if (data.quantity === 0) {
+                    cartItem.remove();
+                    
+                    // Vérifier si le panier est vide
+                    const cartItems = document.querySelectorAll('.cart-item');
+                    if (cartItems.length === 0) {
+                        window.location.reload(); // Recharger la page pour afficher le panier vide
+                    }
+                }
+            } else {
+                showAlert('Une erreur est survenue', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Erreur:', error);
+            showAlert('Une erreur est survenue lors de la mise à jour', 'danger');
+        });
+    }
+    
+    // Fonction pour afficher des messages d'alerte
+    function showAlert(message, type = 'info') {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.role = 'alert';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        const container = document.querySelector('.alerts-container');
+        if (container) {
+            container.prepend(alertDiv);
+            
+            // Supprimer l'alerte après 5 secondes
+            setTimeout(() => {
+                const alert = bootstrap.Alert.getOrCreateInstance(alertDiv);
+                if (alert) {
+                    alert.close();
+                }
+            }, 5000);
+        }
+    }
+</script>
 <script>
     // Fonction pour valider le formulaire de commande
     function validateCheckout() {
