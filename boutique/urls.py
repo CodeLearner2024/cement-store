@@ -2,6 +2,7 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 from django.utils.translation import gettext_lazy as _
 from . import views
+from . import views_landing
 from .admin_views import (
     CategoryListView, CategoryCreateView, CategoryUpdateView, CategoryDeleteView,
     ProductListView, ProductCreateView, ProductUpdateView, ProductDeleteView,
@@ -12,8 +13,10 @@ from .admin_views import (
 app_name = 'boutique'
 
 urlpatterns = [
-    # Page d'accueil
-    path('', views.HomeView.as_view(), name='home'),
+    # Pages statiques
+    path('', views_landing.LandingPageView.as_view(), name='home'),
+    path('boutique/', views.HomeView.as_view(), name='boutique'),
+    path('mentions-legales/', views.LegalNoticeView.as_view(), name='legal_notice'),
     
     # Produits
     path('produits/', views.ProductListView.as_view(), name='product_list'),
@@ -50,11 +53,12 @@ urlpatterns = [
     path('admin/categories/<int:pk>/modifier/', CategoryUpdateView.as_view(), name='admin_category_edit'),
     path('admin/categories/<int:pk>/supprimer/', CategoryDeleteView.as_view(), name='admin_category_delete'),
     
-    # Gestion des produits
+    # Gestion des produits - Nouvelle interface
     path('admin/produits/', ProductListView.as_view(), name='admin_product_list'),
-    path('admin/produits/ajouter/', ProductCreateView.as_view(), name='admin_product_add'),
+    path('admin/produits/ajouter/', views.ProductAddView.as_view(), name='admin_product_add'),
     path('admin/produits/<int:pk>/modifier/', ProductUpdateView.as_view(), name='admin_product_edit'),
     path('admin/produits/<int:pk>/supprimer/', ProductDeleteView.as_view(), name='admin_product_delete'),
+    path('admin/produits/images/<int:pk>/supprimer/', views.delete_product_image, name='delete_product_image'),
     
     # Gestion des utilisateurs
     path('admin/utilisateurs/', UserListView.as_view(), name='admin_user_list'),

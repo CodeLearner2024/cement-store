@@ -21,10 +21,13 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <!-- Barre de navigation -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <!-- Barre de navigation fixe -->
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background-color: #3B5998;" fixed-top>
         <div class="container">
-            <a class="navbar-brand" href="{% url 'boutique:home' %}">Ma Boutique</a>
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'boutique:home' %}">
+                <img src="{% static 'img/cement_logo.png' %}" alt="Logo" height="40" class="me-2">
+                <span style="color: white;">Eric Digital Cementry</span>
+            </a>
             
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -63,6 +66,23 @@
                 </ul>
                 
                 <ul class="navbar-nav ms-auto">
+                    <!-- Sélecteur de langue -->
+                    <li class="nav-item dropdown me-2">
+                        <form action="{% url 'set_language' %}" method="post" class="d-flex">
+                            {% csrf_token %}
+                            <input name="next" type="hidden" value="{{ request.path }}" />
+                            <select name="language" class="form-select form-select-sm" onchange="this.form.submit()" style="width: auto;">
+                                {% get_current_language as LANGUAGE_CODE %}
+                                {% get_available_languages as LANGUAGES %}
+                                {% get_language_info_list for LANGUAGES as languages %}
+                                {% for language in languages %}
+                                    <option value="{{ language.code }}" {% if language.code == LANGUAGE_CODE %}selected{% endif %}>
+                                        {{ language.name_local|title }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </form>
+                    </li>
                     <li class="nav-item me-2">
                         <a class="nav-link" href="{% url 'boutique:cart' %}" title="{% trans 'Panier' %}">
                             <i class="fas fa-shopping-cart"></i>
@@ -113,21 +133,12 @@
                         </li>
                     {% endif %}
                 </ul>
-                
-                <!-- Formulaire de recherche -->
-                <form class="d-flex ms-3" action="{% url 'boutique:product_list' %}" method="get">
-                    <input class="form-control me-2" type="search" name="q" placeholder="{% trans 'Rechercher...' %}" 
-                           aria-label="Search" value="{{ request.GET.q }}">
-                    <button class="btn btn-outline-light" type="submit">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </form>
             </div>
         </div>
     </nav>
 
     <!-- Contenu principal -->
-    <main class="container my-4">
+    <main class="container mt-5 pt-4">
         {% if messages %}
             {% for message in messages %}
                 <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -144,33 +155,22 @@
     <footer class="bg-dark text-white py-4">
         <div class="container">
             <div class="row">
-                <div class="col-md-4">
-                    <h5>{% trans 'Depuis 2010' %}</h5>
-                    <div class="mb-3 bg-light p-3 rounded text-center" style="height: 150px; display: flex; align-items: center; justify-content: center;">
-                        <div>
-                            <i class="fas fa-box-open fa-3x text-muted mb-2"></i>
-                            <p class="small text-muted mb-0">Image du sac de ciment</p>
-                        </div>
-                    </div>
-                    <h6>Au service de Bujumbura</h6>
-                    <p class="small">Votre partenaire de confiance à Bujumbura pour des matériaux de construction de qualité supérieure.</p>
-                    <p class="small">Fondée au cœur de Bujumbura, notre entreprise s'engage à fournir des matériaux de construction de première qualité à des prix compétitifs. Notre équipe d'experts locaux est à votre écoute pour vous conseiller et vous accompagner dans tous vos projets de construction et de rénovation.</p>
-                </div>
+                
                 <div class="col-md-4">
                     <h5>{% trans 'Liens rapides' %}</h5>
                     <ul class="list-unstyled">
                         <li><a href="{% url 'boutique:home' %}" class="text-white">{% trans 'Accueil' %}</a></li>
                         <li><a href="{% url 'boutique:product_list' %}" class="text-white">{% trans 'Boutique' %}</a></li>
-                        <li><a href="#" class="text-white">{% trans 'Mentions légales' %}</a></li>
+                        <li><a href="{% url 'boutique:legal_notice' %}" class="text-white">{% trans 'Mentions légales' %}</a></li>
                         <li><a href="#" class="text-white">{% trans 'Politique de confidentialité' %}</a></li>
                     </ul>
                 </div>
                 <div class="col-md-4">
                     <h5>{% trans 'Contact' %}</h5>
                     <address>
-                        <p><i class="fas fa-map-marker-alt me-2"></i> 123 Rue de la Boutique, 75000 Paris</p>
-                        <p><i class="fas fa-phone me-2"></i> +33 1 23 45 67 89</p>
-                        <p><i class="fas fa-envelope me-2"></i> contact@maboutique.com</p>
+                        <p><i class="fas fa-map-marker-alt me-2"></i> 14 Rue de la Boutique, 22 Mirango</p>
+                        <p><i class="fas fa-phone me-2"></i>+257 61 69 00 53</p>
+                        <p><i class="fas fa-envelope me-2"></i> ciment@gmail.com</p>
                     </address>
                 </div>
             </div>

@@ -12,7 +12,9 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 import os
 from pathlib import Path
+import os
 from django.utils.translation import gettext_lazy as _
+from .locale_settings import LANGUAGES, LOCALE_PATHS
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -127,11 +129,33 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'fr-fr'
+LANGUAGE_CODE = 'fr'
+
+# Langues supportées
+LANGUAGES = LANGUAGES
+
+# Dossier où Django va chercher les fichiers de traduction
+LOCALE_PATHS = LOCALE_PATHS
+
+# Middleware pour la détection de la langue
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',  # Doit être après SessionMiddleware et avant CommonMiddleware
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
+]
 
 TIME_ZONE = 'Europe/Paris'
 
 USE_I18N = True
+
+USE_L10N = True
 
 USE_TZ = True
 
@@ -172,7 +196,12 @@ ACCOUNT_EMAIL_REQUIRED = True  # Email obligatoire pour l'inscription
 ACCOUNT_LOGOUT_ON_GET = True  # Déconnexion directe sans confirmation
 ACCOUNT_LOGOUT_REDIRECT_URL = 'account_login'  # Redirige vers la page de connexion après déconnexion
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = True  # Connecte automatiquement après réinitialisation du mot de passe
-ACCOUNT_SESSION_REMEMBER = True  # Se souvenir de la connexion
+ACCOUNT_SESSION_REMEMBER = None  # Laisse l'utilisateur choisir de se souvenir ou non
+
+# Configuration des sessions
+SESSION_COOKIE_AGE = 1209600  # 2 semaines en secondes (valeur par défaut)
+SESSION_SAVE_EVERY_REQUEST = True  # Rafraîchir le cookie de session à chaque requête
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # La session expire quand le navigateur est fermé
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True  # Confirmation du mot de passe à l'inscription
 ACCOUNT_USERNAME_MIN_LENGTH = 3  # Longueur minimale du nom d'utilisateur
 

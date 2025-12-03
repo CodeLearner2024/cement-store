@@ -4,8 +4,10 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.core.exceptions import ValidationError
+from django.utils.text import slugify
 from decimal import Decimal
 import uuid
+from django.core.validators import MinLengthValidator
 
 # Create your models here.
 
@@ -418,11 +420,52 @@ class Review(models.Model):
         return f'Avis de {self.user} sur {self.product}'
 
 
+class ProductSpecification(models.Model):
+    """Spécification technique d'un produit"""
+    product = models.ForeignKey(
+        'Product',
+        related_name='specifications',
+        on_delete=models.CASCADE,
+        verbose_name=_('produit')
+    )
+    name = models.CharField(
+        _('nom de la spécification'),
+        max_length=100,
+        validators=[MinLengthValidator(2)]
+    )
+    value = models.CharField(
+        _('valeur'),
+        max_length=255,
+        validators=[MinLengthValidator(1)]
+    )
+    created_at = models.DateTimeField(_('créé le'), auto_now_add=True)
+    updated_at = models.DateTimeField(_('mis à jour le'), auto_now=True)
+
+    class Meta:
+        verbose_name = _('spécification technique')
+        verbose_name_plural = _('spécifications techniques')
+        ordering = ['name']
+        unique_together = ['product', 'name']
+
+    def __str__(self):
+        return f"{self.name}: {self.value}"
+
+    def clean(self):
+        # Vérifier que le nom et la valeur ne sont pas vides
+        if not self.name.strip():
+            raise ValidationError({
+                'name': _('Le nom de la spécification ne peut pas être vide.')
+            })
+        if not self.value.strip():
+            raise ValidationError({
+                'value': _('La valeur de la spécification ne peut pas être vide.')
+            })
+
+
 # Signal pour mettre à jour le stock après une commande
 def update_stock(sender, instance, created, **kwargs):
     if created and instance.product:
-        product = instance.product
-        product.stock -= instance.quantity
-        product.save()
+        instance.product.stock -= instance.quantity
+        instance.product.save()
 
 models.signals.post_save.connect(update_stock, sender=OrderItem)

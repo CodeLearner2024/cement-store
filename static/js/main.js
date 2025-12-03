@@ -221,12 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Fonction pour formater les prix
 function formatPrice(price) {
-    return new Intl.NumberFormat('fr-FR', { 
-        style: 'currency', 
-        currency: 'EUR',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    }).format(price);
+    // Formatage personnalisé pour le franc burundais (BIF)
+    return new Intl.NumberFormat('fr-BI', {
+        style: 'decimal',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(price) + ' FBu';
 }
 
 // Fonction pour ajouter un produit au panier via AJAX

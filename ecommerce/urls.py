@@ -10,6 +10,7 @@ from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from django.views.generic import RedirectView
+from django.views.i18n import set_language
 
 urlpatterns = [
     # Admin
@@ -20,6 +21,9 @@ urlpatterns = [
     
     # Application boutique
     path('boutique/', include('boutique.urls', namespace='boutique')),
+    
+    # Gestion des langues
+    path('i18n/', include('django.conf.urls.i18n')),
     
     # Redirection de la racine vers la boutique
     path('', RedirectView.as_view(pattern_name='boutique:home', permanent=False)),

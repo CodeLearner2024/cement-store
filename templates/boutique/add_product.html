@@ -1,0 +1,603 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block extra_css %}
+<style>
+    /* Styles spécifiques au formulaire d'ajout de produit */
+    .product-form {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #eee;
+    }
+    
+    .form-header h2 {
+        color: #3B5998;
+        font-weight: 600;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select, .form-file-input {
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #ddd;
+        transition: all 0.3s;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #3B5998;
+        box-shadow: 0 0 0 0.25rem rgba(59, 89, 152, 0.25);
+    }
+    
+    .btn-primary {
+        background-color: #3B5998;
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 500;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2d4373;
+        transform: translateY(-2px);
+    }
+    
+    .preview-image {
+        max-width: 200px;
+        max-height: 200px;
+        margin-top: 1rem;
+        border-radius: 8px;
+        display: none;
+    }
+    
+    .image-upload-container {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 2rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        margin-bottom: 1.5rem;
+    }
+    
+    .image-upload-container:hover {
+        border-color: #3B5998;
+        background-color: #f8f9fa;
+    }
+    
+    .image-upload-text {
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .delete-image {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: rgba(0,0,0,0.5);
+        color: white;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .image-preview-container {
+        position: relative;
+        display: inline-block;
+        margin-right: 15px;
+        margin-bottom: 15px;
+    }
+    
+    .image-preview-container:hover .delete-image {
+        opacity: 1;
+    }
+    
+    .image-preview {
+        max-width: 100px;
+        max-height: 100px;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+    }
+    
+    .image-preview-grid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 1rem;
+    }
+    
+    .character-count {
+        font-size: 0.8rem;
+        color: #6c757d;
+        text-align: right;
+    }
+    
+    .character-count.warning {
+        color: #ffc107;
+    }
+    
+    .character-count.danger {
+        color: #dc3545;
+    }
+    
+    /* Style pour l'éditeur de texte riche */
+    .ck-editor__editable {
+        min-height: 200px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="product-form">
+        <div class="form-header">
+            <h2>{% trans 'Ajouter un nouveau produit' %}</h2>
+            <p class="text-muted">{% trans 'Remplissez les détails de votre nouveau produit' %}</p>
+        </div>
+        
+        <form id="productForm" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Colonne de gauche -->
+                <div class="col-md-6">
+                    <!-- Nom du produit -->
+                    <div class="form-group">
+                        <label for="name" class="form-label">{% trans 'Nom du produit' %} *</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <!-- Référence -->
+                    <div class="form-group">
+                        <label for="reference" class="form-label">{% trans 'Référence' %}</label>
+                        <input type="text" class="form-control" id="reference" name="reference">
+                    </div>
+                    
+                    <!-- Catégorie -->
+                    <div class="form-group">
+                        <label for="category" class="form-label">{% trans 'Catégorie' %} *</label>
+                        <select class="form-select" id="category" name="category" required>
+                            <option value="" selected disabled>{% trans 'Sélectionnez une catégorie' %}</option>
+                            {% for category in categories %}
+                                <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <!-- Prix -->
+                    <div class="form-group">
+                        <label for="price" class="form-label">{% trans 'Prix' %} ({{ CURRENCY }}) *</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="price" name="price" step="0.01" min="0" required>
+                            <span class="input-group-text">{{ CURRENCY }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Prix de vente (optionnel) -->
+                    <div class="form-group">
+                        <label for="sale_price" class="form-label">{% trans 'Prix soldé' %} ({{ CURRENCY }})</label>
+                        <div class="input-group">
+                            <input type="number" class="form-control" id="sale_price" name="sale_price" step="0.01" min="0">
+                            <span class="input-group-text">{{ CURRENCY }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Quantité en stock -->
+                    <div class="form-group">
+                        <label for="stock" class="form-label">{% trans 'Quantité en stock' %} *</label>
+                        <input type="number" class="form-control" id="stock" name="stock" min="0" required>
+                    </div>
+                    
+                    <!-- Unité de mesure -->
+                    <div class="form-group">
+                        <label for="unit" class="form-label">{% trans 'Unité de mesure' %}</label>
+                        <select class="form-select" id="unit" name="unit">
+                            <option value="">{% trans 'Sélectionnez une unité' %}</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="mL">mL</option>
+                            <option value="m">m</option>
+                            <option value="cm">cm</option>
+                            <option value="mm">mm</option>
+                            <option value="unité">{% trans 'Unité' %}</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Colonne de droite -->
+                <div class="col-md-6">
+                    <!-- Images du produit -->
+                    <div class="form-group">
+                        <label class="form-label">{% trans 'Images du produit' %}</label>
+                        <div class="image-upload-container" id="imageUploadContainer">
+                            <i class="fas fa-cloud-upload-alt fa-3x text-muted"></i>
+                            <p class="image-upload-text">
+                                {% trans 'Glissez et déposez vos images ici ou cliquez pour sélectionner' %}
+                            </p>
+                            <input type="file" id="imageInput" name="images" multiple accept="image/*" style="display: none;">
+                        </div>
+                        <div class="image-preview-grid" id="imagePreview"></div>
+                        <small class="text-muted">{% trans 'Formats acceptés : JPG, PNG, GIF. Taille maximale : 5 Mo par image.' %}</small>
+                    </div>
+                    
+                    <!-- Statut de disponibilité -->
+                    <div class="form-group">
+                        <label class="form-label">{% trans 'Statut' %}</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="is_available" name="is_available" checked>
+                            <label class="form-check-label" for="is_available">{% trans 'Disponible à la vente' %}</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Mise en avant -->
+                    <div class="form-group">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="is_featured" name="is_featured">
+                            <label class="form-check-label" for="is_featured">{% trans 'Mettre en avant' %}</label>
+                        </div>
+                    </div>
+                    
+                    <!-- En solde -->
+                    <div class="form-group">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="is_on_sale" name="is_on_sale">
+                            <label class="form-check-label" for="is_on_sale">{% trans 'Mettre en solde' %}</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Livraison gratuite -->
+                    <div class="form-group">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="free_shipping" name="free_shipping">
+                            <label class="form-check-label" for="free_shipping">{% trans 'Livraison gratuite' %}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Description courte -->
+            <div class="form-group">
+                <label for="short_description" class="form-label">{% trans 'Description courte' %} *</label>
+                <textarea class="form-control" id="short_description" name="short_description" rows="2" maxlength="300" required></textarea>
+                <div class="character-count" id="shortDescriptionCount">0/300</div>
+            </div>
+            
+            <!-- Description détaillée -->
+            <div class="form-group">
+                <label for="description" class="form-label">{% trans 'Description détaillée' %}</label>
+                <textarea class="form-control" id="description" name="description" rows="5"></textarea>
+            </div>
+            
+            <!-- Spécifications techniques -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans 'Spécifications techniques' %}</h5>
+                </div>
+                <div class="card-body">
+                    <div id="specifications">
+                        <div class="row mb-3 specification-row">
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="spec_name[]" placeholder="{% trans 'Nom de la spécification' %}">
+                            </div>
+                            <div class="col-md-5">
+                                <input type="text" class="form-control" name="spec_value[]" placeholder="{% trans 'Valeur' %}">
+                            </div>
+                            <div class="col-md-2">
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-spec" disabled>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm mt-2" id="addSpec">
+                        <i class="fas fa-plus"></i> {% trans 'Ajouter une spécification' %}
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Mots-clés pour le référencement -->
+            <div class="form-group">
+                <label for="meta_keywords" class="form-label">{% trans 'Mots-clés (SEO)' %}</label>
+                <input type="text" class="form-control" id="meta_keywords" name="meta_keywords" placeholder="{% trans 'Séparez les mots-clés par des virgules' %}">
+                <small class="text-muted">{% trans 'Ces mots-clés aident les moteurs de recherche à trouver votre produit.' %}</small>
+            </div>
+            
+            <!-- Boutons d'action -->
+            <div class="d-flex justify-content-between mt-4">
+                <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i> {% trans 'Annuler' %}
+                </a>
+                <div>
+                    <button type="submit" name="save_and_add_another" class="btn btn-outline-primary me-2">
+                        <i class="fas fa-save me-2"></i> {% trans 'Enregistrer et ajouter un autre' %}
+                    </button>
+                    <button type="submit" name="save" class="btn btn-primary">
+                        <i class="fas fa-check me-2"></i> {% trans 'Enregistrer le produit' %}
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- CKEditor pour l'édition de texte riche -->
+<script src="https://cdn.ckeditor.com/ckeditor5/35.0.1/classic/ckeditor.js"></script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialisation de CKEditor pour la description détaillée
+        let editor;
+        try {
+            ClassicEditor
+                .create(document.querySelector('#description'), {
+                    toolbar: ['heading', '|', 'bold', 'italic', 'link', 'bulletedList', 'numberedList', 'blockQuote', 'undo', 'redo']
+                })
+                .then(newEditor => {
+                    editor = newEditor;
+                })
+                .catch(error => {
+                    console.error('Erreur lors de l\'initialisation de CKEditor :', error);
+                });
+        } catch (e) {
+            console.error('Erreur CKEditor :', e);
+        }
+        
+        // Gestion du compteur de caractères pour la description courte
+        const shortDescription = document.getElementById('short_description');
+        const shortDescriptionCount = document.getElementById('shortDescriptionCount');
+        
+        if (shortDescription && shortDescriptionCount) {
+            shortDescription.addEventListener('input', function() {
+                const currentLength = this.value.length;
+                const maxLength = this.getAttribute('maxlength');
+                shortDescriptionCount.textContent = `${currentLength}/${maxLength}`;
+                
+                // Changer la couleur en fonction du nombre de caractères restants
+                const remaining = maxLength - currentLength;
+                if (remaining < 0) {
+                    shortDescriptionCount.classList.add('danger');
+                    shortDescriptionCount.classList.remove('warning');
+                } else if (remaining < 50) {
+                    shortDescriptionCount.classList.add('warning');
+                    shortDescriptionCount.classList.remove('danger');
+                } else {
+                    shortDescriptionCount.classList.remove('warning', 'danger');
+                }
+            });
+            
+            // Déclencher l'événement input pour initialiser le compteur
+            shortDescription.dispatchEvent(new Event('input'));
+        }
+        
+        // Gestion du glisser-déposer des images
+        const imageUploadContainer = document.getElementById('imageUploadContainer');
+        const imageInput = document.getElementById('imageInput');
+        const imagePreview = document.getElementById('imagePreview');
+        
+        if (imageUploadContainer && imageInput) {
+            // Gestion du clic sur la zone de dépôt
+            imageUploadContainer.addEventListener('click', () => {
+                imageInput.click();
+            });
+            
+            // Gestion du glisser-déposer
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                imageUploadContainer.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                imageUploadContainer.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                imageUploadContainer.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                imageUploadContainer.classList.add('bg-light');
+                imageUploadContainer.style.borderColor = '#3B5998';
+            }
+            
+            function unhighlight() {
+                imageUploadContainer.classList.remove('bg-light');
+                imageUploadContainer.style.borderColor = '#ddd';
+            }
+            
+            // Gestion du dépôt de fichiers
+            imageUploadContainer.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+            
+            // Gestion de la sélection de fichiers via le champ input
+            imageInput.addEventListener('change', function() {
+                handleFiles(this.files);
+                // Réinitialiser la valeur pour permettre la sélection du même fichier plusieurs fois
+                this.value = '';
+            });
+            
+            function handleFiles(files) {
+                [...files].forEach(file => {
+                    if (file.type.startsWith('image/')) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            const imageContainer = document.createElement('div');
+                            imageContainer.className = 'image-preview-container';
+                            
+                            const img = document.createElement('img');
+                            img.src = e.target.result;
+                            img.className = 'image-preview';
+                            
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.type = 'button';
+                            deleteBtn.className = 'delete-image';
+                            deleteBtn.innerHTML = '&times;';
+                            deleteBtn.onclick = function() {
+                                imageContainer.remove();
+                            };
+                            
+                            imageContainer.appendChild(img);
+                            imageContainer.appendChild(deleteBtn);
+                            imagePreview.appendChild(imageContainer);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+        }
+        
+        // Gestion des spécifications techniques
+        const addSpecBtn = document.getElementById('addSpec');
+        const specificationsContainer = document.getElementById('specifications');
+        
+        if (addSpecBtn && specificationsContainer) {
+            // Activer le bouton de suppression pour la première ligne s'il y a déjà une valeur
+            document.querySelectorAll('.specification-row').forEach(row => {
+                const inputs = row.querySelectorAll('input[type="text"]');
+                const removeBtn = row.querySelector('.remove-spec');
+                
+                if (inputs[0].value || inputs[1].value) {
+                    removeBtn.disabled = false;
+                }
+                
+                // Activer le bouton de suppression quand un champ est rempli
+                inputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        const hasValue = Array.from(inputs).some(input => input.value.trim() !== '');
+                        removeBtn.disabled = !hasValue;
+                    });
+                });
+            });
+            
+            // Ajouter une nouvelle ligne de spécification
+            addSpecBtn.addEventListener('click', function() {
+                const newRow = document.createElement('div');
+                newRow.className = 'row mb-3 specification-row';
+                newRow.innerHTML = `
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="spec_name[]" placeholder="{% trans 'Nom de la spécification' %}">
+                    </div>
+                    <div class="col-md-5">
+                        <input type="text" class="form-control" name="spec_value[]" placeholder="{% trans 'Valeur' %}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger btn-sm remove-spec">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                // Gestion de la suppression d'une ligne
+                const removeBtn = newRow.querySelector('.remove-spec');
+                const inputs = newRow.querySelectorAll('input[type="text"]');
+                
+                removeBtn.addEventListener('click', function() {
+                    newRow.remove();
+                });
+                
+                // Activer le bouton de suppression quand un champ est rempli
+                inputs.forEach(input => {
+                    input.addEventListener('input', function() {
+                        const hasValue = Array.from(inputs).some(input => input.value.trim() !== '');
+                        removeBtn.disabled = !hasValue;
+                    });
+                });
+                
+                specificationsContainer.appendChild(newRow);
+            });
+            
+            // Gestion de la suppression des lignes existantes
+            document.querySelectorAll('.remove-spec').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    this.closest('.specification-row').remove();
+                });
+            });
+        }
+        
+        // Validation du formulaire avant soumission
+        const form = document.getElementById('productForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                // Désactiver les boutons de soumission pour éviter les soumissions multiples
+                const submitButtons = form.querySelectorAll('button[type="submit"]');
+                submitButtons.forEach(button => {
+                    button.disabled = true;
+                    button.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Enregistrement...';
+                });
+                
+                // Vous pouvez ajouter ici une validation supplémentaire si nécessaire
+                
+                // Si tout est valide, le formulaire sera soumis
+                // Sinon, réactiver les boutons
+                // form.addEventListener('invalid', function() {
+                //     submitButtons.forEach(button => {
+                //         button.disabled = false;
+                //         button.innerHTML = '<i class="fas fa-check me-2"></i> Enregistrer le produit';
+                //     });
+                // }, { once: true });
+                
+                // Pour les navigateurs qui ne prennent pas en charge l'événement 'invalid' sur le formulaire
+                setTimeout(() => {
+                    if (!form.checkValidity()) {
+                        submitButtons.forEach(button => {
+                            button.disabled = false;
+                            button.innerHTML = '<i class="fas fa-check me-2"></i> Enregistrer le produit';
+                        });
+                    }
+                }, 100);
+            });
+        }
+        
+        // Gestion du changement d'état de la case à cocher "En solde"
+        const isOnSaleCheckbox = document.getElementById('is_on_sale');
+        const salePriceField = document.getElementById('sale_price');
+        
+        if (isOnSaleCheckbox && salePriceField) {
+            isOnSaleCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    salePriceField.required = true;
+                } else {
+                    salePriceField.required = false;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

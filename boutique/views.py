@@ -1,12 +1,12 @@
 from django.shortcuts import render, get_object_or_404, redirect, reverse
-from django.views.generic import ListView, DetailView, View, TemplateView
+from django.views.generic import ListView, DetailView, View, TemplateView, CreateView
 from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.http import JsonResponse, HttpResponse, HttpResponseRedirect
 from django.db.models import Q, Count, Avg
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView, UpdateView, DeleteView
 from django.contrib.auth import get_user_model
@@ -14,11 +14,14 @@ from django.db.models import Sum
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.utils import timezone
 from decimal import Decimal
+import os
+import json
 import stripe
 
-from .models import Category, Product, Cart, CartItem, Order, OrderItem, Review
-from .forms import AddToCartForm, PaymentForm, CheckoutForm
+from .models import Category, Product, Cart, CartItem, Order, OrderItem, Review, ProductImage, ProductSpecification
+from .forms import AddToCartForm, PaymentForm, CheckoutForm, ProductForm
 
 # Configuration de Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -139,6 +142,14 @@ class CartView(View):
 
 @require_POST
 def add_to_cart(request, product_id):
+    # Vérifier si l'utilisateur est connecté
+    if not request.user.is_authenticated:
+        messages.info(request, _("Veuillez vous connecter pour ajouter des articles à votre panier."))
+        return redirect('{}?next={}'.format(
+            reverse('account_login'),
+            request.path
+        ))
+    
     cart_id = request.session.get('cart_id')
     
     if not cart_id:
@@ -165,7 +176,12 @@ def add_to_cart(request, product_id):
             cart_item.save()
         
         messages.success(request, _("Le produit a été ajouté à votre panier."))
+        
+        # Rediriger vers la page du panier après l'ajout
+        return redirect('boutique:cart')
     
+    # En cas d'erreur de formulaire, rediriger vers la page du produit
+    messages.error(request, _("Une erreur s'est produite lors de l'ajout au panier."))
     return redirect('boutique:product_detail', pk=product_id, slug=product.slug)
 
 
@@ -285,13 +301,26 @@ def remove_from_cart(request, item_id):
         messages.success(request, _("L'article a été retiré du panier."))
         return redirect('boutique:cart')
         
-    except Exception as e:
+    except CartItem.DoesNotExist:
+        error_msg = _("L'article demandé n'existe pas ou a déjà été supprimé.")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': False,
-                'message': str(e)
-            }, status=400)
-        messages.error(request, _("Une erreur est survenue lors de la suppression de l'article."))
+                'message': error_msg
+            }, status=404)
+        messages.error(request, error_msg)
+        return redirect('boutique:cart')
+    except Exception as e:
+        import traceback
+        error_msg = _("Une erreur est survenue lors de la suppression de l'article: {}").format(str(e))
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'success': False,
+                'message': error_msg,
+                'error_details': str(e),
+                'traceback': traceback.format_exc()
+            }, status=500)
+        messages.error(request, error_msg)
         return redirect('boutique:cart')
 
 
@@ -362,7 +391,7 @@ class CheckoutView(LoginRequiredMixin, View):
                     payment_method_types=['card'],
                     line_items=[{
                         'price_data': {
-                            'currency': 'eur',
+                            'currency': 'bif',
                             'product_data': {
                                 'name': f"Commande #{order.id}",
                             },
@@ -728,8 +757,8 @@ class CheckoutView(LoginRequiredMixin, View):
                 # Créer un paiement Stripe
                 stripe.api_key = settings.STRIPE_SECRET_KEY
                 intent = stripe.PaymentIntent.create(
-                    amount=int(cart.get_total() * 100),  # Montant en centimes
-                    currency='eur',
+                    amount=int(cart.get_total()),  # Montant en FBu (pas de centimes pour le BIF)
+                    currency='bif',
                     metadata={
                         'order_id': order.id,
                         'user_id': request.user.id
@@ -816,8 +845,8 @@ class PaymentView(LoginRequiredMixin, View):
                 # Payer la commande
                 charge = stripe.Charge.create(
                     customer=customer.id,
-                    amount=int(order.total * 100),  # Montant en centimes
-                    currency='eur',
+                    amount=int(order.total),  # Montant en FBu (pas de centimes pour le BIF)
+                    currency='bif',
                     description=f'Paiement de la commande #{order.id}',
                     metadata={'order_id': order.id}
                 )
@@ -920,28 +949,115 @@ def clear_cart(request):
                     'success': True,
                     'message': _("Le panier a été vidé avec succès."),
                     'cart_empty': True,
-                    'cart_total': '0.00',
-                    'cart_total_quantity': 0
                 })
-            else:
-                messages.success(request, _("Le panier a été vidé avec succès."))
-                return redirect('boutique:cart')
-                
-        except Cart.DoesNotExist:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'success': False,
-                    'message': _("Le panier est déjà vide.")
-                }, status=400)
-            else:
-                messages.warning(request, _("Le panier est déjà vide."))
-                return redirect('boutique:cart')
-    else:
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': False,
-                'message': _("Aucun panier trouvé.")
-            }, status=400)
-        else:
-            messages.warning(request, _("Aucun panier trouvé."))
+            
+            messages.success(request, _("Le panier a été vidé avec succès."))
             return redirect('boutique:cart')
+            
+        except Cart.DoesNotExist:
+            pass
+    
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': False,
+            'message': _("Le panier est déjà vide."),
+            'cart_empty': True,
+        }, status=400)
+    
+    messages.warning(request, _("Le panier est déjà vide."))
+    return redirect('boutique:cart')
+
+
+def is_admin(user):
+    """Vérifie si l'utilisateur est un administrateur."""
+    return user.is_authenticated and (user.is_superuser or user.is_staff)
+
+
+class ProductAddView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """
+    Vue personnalisée pour l'ajout de produits avec une interface utilisateur moderne.
+    """
+    model = Product
+    form_class = ProductForm
+    template_name = 'boutique/add_product.html'
+    success_url = reverse_lazy('boutique:admin_product_list')
+    login_url = reverse_lazy('account_login')
+    
+    def test_func(self):
+        return is_admin(self.request.user)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['categories'] = Category.objects.all()
+        context['CURRENCY'] = '€'  # Vous pouvez remplacer par votre devise
+        return context
+    
+    def form_valid(self, form):
+        # Sauvegarder d'abord le produit sans le commit pour pouvoir ajouter les images
+        self.object = form.save(commit=False)
+        self.object.added_by = self.request.user
+        self.object.save()
+        
+        # Gérer les images téléchargées
+        images = self.request.FILES.getlist('images')
+        for image in images:
+            ProductImage.objects.create(product=self.object, image=image)
+        
+        # Gérer les spécifications techniques
+        spec_names = self.request.POST.getlist('spec_name[]')
+        spec_values = self.request.POST.getlist('spec_value[]')
+        
+        for name, value in zip(spec_names, spec_values):
+            if name.strip() and value.strip():
+                ProductSpecification.objects.create(
+                    product=self.object,
+                    name=name,
+                    value=value
+                )
+        
+        # Sauvegarder les relations many-to-many (comme les catégories)
+        form.save_m2m()
+        
+        messages.success(self.request, _('Le produit a été ajouté avec succès.'))
+        
+        # Rediriger en fonction du bouton cliqué
+        if 'save_and_add_another' in self.request.POST:
+            return redirect('boutique:add_product')
+        
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, _('Veuillez corriger les erreurs ci-dessous.'))
+        return super().form_invalid(form)
+    
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            messages.warning(self.request, _('Veuvez-vous vous connecter pour accéder à cette page ?'))
+            return super().handle_no_permission()
+        messages.error(self.request, _("Vous n'avez pas la permission d'accéder à cette page."))
+        return redirect('boutique:home')
+
+
+@login_required
+def delete_product_image(request, pk):
+    """
+    Vue pour supprimer une image de produit via AJAX.
+    """
+    if request.method == 'POST' and request.is_ajax():
+        try:
+            image = get_object_or_404(ProductImage, pk=pk)
+            # Vérifier que l'utilisateur a les droits pour supprimer l'image
+            if request.user.is_staff:
+                image.delete()
+                return JsonResponse({'success': True})
+            return JsonResponse({'success': False, 'error': 'Permission denied'}, status=403)
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+    return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
+
+
+class LegalNoticeView(TemplateView):
+    """
+    Vue pour afficher les mentions légales
+    """
+    template_name = 'boutique/legal_notice.html'

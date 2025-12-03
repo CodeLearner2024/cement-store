@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<style>
+    .fixed-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1000;
+        background-color: rgba(59, 89, 152, 0.95);
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .hero-section {
+        padding-top: 76px; /* Hauteur de la navbar */
+    }
+    
+    body {
+        padding-top: 0;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header fixe -->
+<header class="fixed-header">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center py-2">
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'boutique:home' %}">
+                <img src="{% static 'img/cement_logo.png' %}" alt="Logo" height="40" class="me-2">
+                <span style="color: white;">Eric Digital Cementry</span>
+            </a>
+            <div>
+                <a href="{% url 'boutique:product_list' %}" class="btn btn-outline-light me-2">Boutique</a>
+                <a href="{% url 'boutique:cart' %}" class="btn btn-primary">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span class="badge bg-danger rounded-pill">
+                        {% if cart %}{{ cart.total_quantity }}{% else %}0{% endif %}
+                    </span>
+                </a>
+            </div>
+        </div>
+    </div>
+</header>
+
+<div class="container-fluid p-0">
+    <!-- Hero Section with Logo -->
+    <div class="hero-section d-flex align-items-center justify-content-center" 
+         style="min-height: 100vh; 
+                background: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), 
+                           url('{% static 'img/cement_logo.png' %}') no-repeat center center; 
+                background-size: 50%; 
+                background-attachment: fixed;
+                background-color: #f8f9fa;">
+        <div class="container text-center">
+            <div class="row justify-content-center">
+                <div class="col-12">
+                    <a href="{% url 'boutique:product_list' %}" class="btn btn-primary btn-lg">Découvrir nos produits</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="container py-5">
+        <div class="row text-center">
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-truck fa-3x mb-3 text-primary"></i>
+                        <h3>Livraison Rapide</h3>
+                        <p>Livraison rapide et sécurisée de vos commandes</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-medal fa-3x mb-3 text-primary"></i>
+                        <h3>Qualité Premium</h3>
+                        <p>Des produits de haute qualité pour tous vos projets</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <i class="fas fa-headset fa-3x mb-3 text-primary"></i>
+                        <h3>Support Client</h3>
+                        <p>Notre équipe est là pour vous aider 24/7</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
