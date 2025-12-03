@@ -1,0 +1,231 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}{% trans 'Gestion des catégories' %} - {% trans 'Administration' %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .category-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    .action-buttons .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0">
+                    <i class="fas fa-layer-group text-primary me-2"></i>{% trans 'Gestion des catégories' %}
+                </h2>
+                <div>
+                    <a href="{% url 'boutique:admin_dashboard' %}" class="btn btn-outline-secondary me-2">
+                        <i class="fas fa-arrow-left me-1"></i>{% trans 'Retour au tableau de bord' %}
+                    </a>
+                    <a href="{% url 'boutique:add_category' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>{% trans 'Nouvelle catégorie' %}
+                    </a>
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-white border-bottom py-3">
+                    <h5 class="mb-0">
+                        <i class="fas fa-list-ul text-primary me-2"></i>{% trans 'Liste des catégories' %}
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    {% if categories %}
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">{% trans 'Image' %}</th>
+                                        <th>{% trans 'Nom' %}</th>
+                                        <th>{% trans 'Description' %}</th>
+                                        <th>{% trans 'Date de création' %}</th>
+                                        <th class="text-end pe-3">{% trans 'Actions' %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for category in categories %}
+                                    <tr>
+                                        <td class="ps-3">
+                                            {% if category.image %}
+                                                <img src="{{ category.image.url }}" alt="{{ category.name }}" class="category-image">
+                                            {% else %}
+                                                <div class="bg-light d-flex align-items-center justify-content-center category-image">
+                                                    <i class="fas fa-image text-muted"></i>
+                                                </div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <strong>{{ category.name }}</strong>
+                                            <div class="small text-muted">
+                                                {{ category.slug }}
+                                            </div>
+                                        </td>
+                                        <td>
+                                            {% if category.description %}
+                                                {{ category.description|truncatewords:10 }}
+                                            {% else %}
+                                                <span class="text-muted">{% trans 'Aucune description' %}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ category.created_at|date:"d/m/Y H:i" }}</td>
+                                        <td class="text-end pe-3 action-buttons">
+                                            <a href="{{ category.get_absolute_url }}" class="btn btn-sm btn-outline-info me-1" title="{% trans 'Voir' %}" target="_blank">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'boutique:admin_category_edit' category.pk %}" class="btn btn-sm btn-outline-primary me-1" title="{% trans 'Modifier' %}">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteModal{{ category.id }}"
+                                                    title="{% trans 'Supprimer' %}">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+
+                                            <!-- Modal de confirmation de suppression -->
+                                            <div class="modal fade" id="deleteModal{{ category.id }}" tabindex="-1" aria-labelledby="deleteModalLabel{{ category.id }}" aria-hidden="true">
+                                                <div class="modal-dialog">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title" id="deleteModalLabel{{ category.id }}">
+                                                                {% trans 'Confirmer la suppression' %}
+                                                            </h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{% trans 'Fermer' %}"></button>
+                                                        </div>
+                                                        <div class="modal-body">
+                                                            <p>{% trans 'Êtes-vous sûr de vouloir supprimer la catégorie' %} <strong>{{ category.name }}</strong> ?</p>
+                                                            <p class="text-danger">
+                                                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                                                {% trans 'Cette action est irréversible.' %}
+                                                            </p>
+                                                        </div>
+                                                        <div class="modal-footer">
+                                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                                                <i class="fas fa-times me-1"></i>{% trans 'Annuler' %}
+                                                            </button>
+                                                            <form action="{% url 'boutique:admin_category_delete' category.pk %}" method="post" class="d-inline">
+                                                                {% csrf_token %}
+                                                                <button type="submit" class="btn btn-danger">
+                                                                    <i class="fas fa-trash-alt me-1"></i>{% trans 'Supprimer' %}
+                                                                </button>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-5">
+                            <div class="mb-3">
+                                <i class="fas fa-layer-group fa-4x text-muted"></i>
+                            </div>
+                            <h5 class="text-muted">{% trans 'Aucune catégorie trouvée' %}</h5>
+                            <p class="text-muted">
+                                {% trans 'Commencez par ajouter votre première catégorie en cliquant sur le bouton ci-dessous.' %}
+                            </p>
+                            <a href="{% url 'boutique:add_category' %}" class="btn btn-primary mt-3">
+                                <i class="fas fa-plus me-1"></i>{% trans 'Ajouter une catégorie' %}
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                {% if is_paginated %}
+                <div class="card-footer bg-white border-top py-3">
+                    <nav aria-label="Pagination">
+                        <ul class="pagination justify-content-center mb-0">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1" aria-label="{% trans 'Première page' %}">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="{% trans 'Précédent' %}">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="{% trans 'Suivant' %}">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="{% trans 'Dernière page' %}">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    <div class="text-center text-muted mt-2">
+                        {% blocktrans with number=page_obj.number num_pages=page_obj.paginator.num_pages %}
+                            Page {{ number }} sur {{ num_pages }}
+                        {% endblocktrans %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialisation des tooltips Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Gestion des modaux de suppression
+    var deleteModals = document.querySelectorAll('.modal');
+    deleteModals.forEach(function(modal) {
+        modal.addEventListener('show.bs.modal', function (event) {
+            var button = event.relatedTarget;
+            var modalTitle = modal.querySelector('.modal-title');
+            var modalBody = modal.querySelector('.modal-body');
+            var categoryName = button.getAttribute('data-category-name');
+            
+            modalTitle.textContent = 'Supprimer ' + categoryName + ' ?';
+            modalBody.querySelector('strong').textContent = categoryName;
+        });
+    });
+});
+</script>
+{% endblock %}

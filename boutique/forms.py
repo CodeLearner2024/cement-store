@@ -286,19 +286,59 @@ class CategoryForm(forms.ModelForm):
     class Meta:
         from .models import Category
         model = Category
-        fields = ['name', 'slug', 'image', 'description']
+        fields = ['name', 'image', 'description']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control'}),
-            'slug': forms.TextInput(attrs={'class': 'form-control'}),
-            'image': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': _('Ex: Ciment, Sable, Gravier...')
+            }),
+            'description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': _('Décrivez cette catégorie en quelques mots...')
+            }),
+            'image': forms.FileInput(attrs={
+                'class': 'd-none',
+                'accept': 'image/jpeg,image/png,image/webp',
+                'id': 'category-image-input'
+            })
         }
         labels = {
-            'name': _('Nom'),
-            'slug': _('Slug'),
-            'image': _('Image'),
-            'description': _('Description'),
+            'name': _('Nom de la catégorie'),
+            'image': _('Image de la catégorie'),
+            'description': _('Description')
         }
+        help_texts = {
+            'name': _('Le nom de la catégorie tel qu\'il apparaîtra sur le site.'),
+            'image': _('Image représentative de la catégorie (format recommandé : 800×600px)'),
+            'description': _('Une description détaillée de la catégorie pour les moteurs de recherche.')
+        }
+
+    def clean_name(self):
+        name = self.cleaned_data.get('name')
+        if not name:
+            raise forms.ValidationError(_('Le nom de la catégorie est obligatoire.'))
+        return name.strip()
+        
+    def clean_image(self):
+        image = self.cleaned_data.get('image', False)
+        
+        # Si aucune image n'est fournie, on retourne None
+        if not image:
+            return None
+            
+        # Vérification de la taille du fichier (max 5 Mo)
+        max_size = 5 * 1024 * 1024  # 5 Mo
+        if image.size > max_size:
+            raise forms.ValidationError(_("La taille de l'image ne doit pas dépasser 5 Mo."))
+            
+        # Vérification du type de fichier
+        content_type = image.content_type
+        valid_types = ['image/jpeg', 'image/png', 'image/webp']
+        if content_type not in valid_types:
+            raise forms.ValidationError(_("Type de fichier non supporté. Utilisez JPG, PNG ou WEBP."))
+            
+        return image
 
 
 class ProductForm(forms.ModelForm):

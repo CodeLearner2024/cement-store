@@ -15,13 +15,14 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.utils import timezone
+from django.utils.text import slugify
 from decimal import Decimal
 import os
 import json
 import stripe
 
 from .models import Category, Product, Cart, CartItem, Order, OrderItem, Review, ProductImage, ProductSpecification
-from .forms import AddToCartForm, PaymentForm, CheckoutForm, ProductForm
+from .forms import AddToCartForm, PaymentForm, CheckoutForm, ProductForm, CategoryForm
 
 # Configuration de Stripe
 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -1056,8 +1057,83 @@ def delete_product_image(request, pk):
     return JsonResponse({'success': False, 'error': 'Invalid request'}, status=400)
 
 
+class CategoryAddView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
+    """Vue pour l'ajout de nouvelles catégories."""
+    model = Category
+    form_class = CategoryForm
+    template_name = 'boutique/category_form.html'
+    success_url = reverse_lazy('boutique:admin_dashboard')
+    login_url = reverse_lazy('account_login')
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = _('Ajouter une catégorie')
+        context['form_title'] = _('Nouvelle catégorie')
+        context['submit_text'] = _('Ajouter la catégorie')
+        return context
+
+    def form_valid(self, form):
+        if not (self.request.user.is_staff or self.request.user.is_superuser):
+            messages.error(self.request, _("Vous n'avez pas la permission d'ajouter des catégories."))
+            return self.handle_no_permission()
+
+        # Générer automatiquement le slug à partir du nom
+        if not form.instance.slug:
+            form.instance.slug = slugify(form.cleaned_data['name'], allow_unicode=True)
+
+        messages.success(self.request, _('La catégorie a été ajoutée avec succès.'))
+        return super().form_valid(form)
+
+    def form_invalid(self, form):
+        messages.error(self.request, _('Veuillez corriger les erreurs ci-dessous.'))
+        return super().form_invalid(form)
+
+    def handle_no_permission(self):
+        messages.error(self.request, _("Vous n'êtes pas autorisé à accéder à cette page."))
+        return redirect(reverse_lazy('boutique:home'))
+
+
+class AddCategoryView(LoginRequiredMixin, UserPassesTestMixin, View):
+    """Vue personnalisée pour l'ajout de catégories"""
+    template_name = 'boutique/admin/add_category.html'
+    login_url = reverse_lazy('account_login')
+    
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get(self, request, *args, **kwargs):
+        form = CategoryForm()
+        return render(request, self.template_name, {'form': form})
+    
+    def post(self, request, *args, **kwargs):
+        form = CategoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            category = form.save(commit=False)
+            # Générer automatiquement le slug si vide
+            if not category.slug:
+                category.slug = slugify(category.name, allow_unicode=True)
+            category.save()
+            
+            messages.success(request, _('La catégorie a été ajoutée avec succès.'))
+            
+            if 'save_and_add_another' in request.POST:
+                return redirect('boutique:add_category')
+                
+            return redirect('boutique:admin_category_list')
+            
+        return render(request, self.template_name, {'form': form})
+    
+    def handle_no_permission(self):
+        if not self.request.user.is_authenticated:
+            messages.warning(self.request, _('Veuvez-vous vous connecter pour accéder à cette page ?'))
+            return super().handle_no_permission()
+        messages.error(self.request, _("Vous n'avez pas la permission d'accéder à cette page."))
+        return redirect('boutique:home')
+
+
 class LegalNoticeView(TemplateView):
-    """
-    Vue pour afficher les mentions légales
-    """
+    """Vue pour afficher les mentions légales"""
     template_name = 'boutique/legal_notice.html'

@@ -1,0 +1,11 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+    <li>
+        <a href="{% url 'boutique:add_category' %}" class="addlink">
+            {% blocktrans with cl.opts.verbose_name as name %}Ajouter une catégorie{% endblocktrans %}
+        </a>
+    </li>
+    {{ block.super }}
+{% endblock %}

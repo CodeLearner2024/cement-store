@@ -1,10 +1,10 @@
-from django.urls import path, include
+from django.urls import path, include, re_path
 from django.views.generic import RedirectView
 from django.utils.translation import gettext_lazy as _
 from . import views
 from . import views_landing
 from .admin_views import (
-    CategoryListView, CategoryCreateView, CategoryUpdateView, CategoryDeleteView,
+    CategoryListView, CategoryUpdateView, CategoryDeleteView,
     ProductListView, ProductCreateView, ProductUpdateView, ProductDeleteView,
     UserListView, UserDetailView,
     OrderListView, OrderDetailView, OrderDeleteView
@@ -49,7 +49,7 @@ urlpatterns = [
     
     # Gestion des catégories
     path('admin/categories/', CategoryListView.as_view(), name='admin_category_list'),
-    path('admin/categories/ajouter/', CategoryCreateView.as_view(), name='admin_category_add'),
+    path('admin/categories/ajouter/', views.AddCategoryView.as_view(), name='add_category'),
     path('admin/categories/<int:pk>/modifier/', CategoryUpdateView.as_view(), name='admin_category_edit'),
     path('admin/categories/<int:pk>/supprimer/', CategoryDeleteView.as_view(), name='admin_category_delete'),
     
@@ -68,6 +68,9 @@ urlpatterns = [
     path('admin/commandes/', OrderListView.as_view(), name='admin_order_list'),
     path('admin/commandes/<uuid:pk>/', OrderDetailView.as_view(), name='admin_order_detail'),
     path('admin/commandes/<uuid:pk>/supprimer/', OrderDeleteView.as_view(), name='admin_order_delete'),
+    
+    # Redirections
+    path('admin/products/', RedirectView.as_view(pattern_name='boutique:admin_product_list', permanent=False)),
     
     # Redirection pour les URLs de l'ancienne version
     path('catalog/', RedirectView.as_view(pattern_name='boutique:product_list', permanent=True)),

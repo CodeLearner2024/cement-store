@@ -1,0 +1,113 @@
+{% extends 'base.html' %}
+{% load static i18n %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">{{ form_title|default:_("Ajouter une catégorie") }}</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+
+                        <div class="mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label">
+                                {{ form.name.label }}
+                                {% if form.name.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.name.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.name.help_text %}
+                                <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.image.id_for_label }}" class="form-label">
+                                {{ form.image.label }}
+                                {% if form.image.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.image }}
+                            {% if form.image.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.image.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.image.help_text %}
+                                <small class="form-text text-muted">{{ form.image.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="{{ form.description.id_for_label }}" class="form-label">
+                                {{ form.description.label }}
+                                {% if form.description.field.required %}<span class="text-danger">*</span>{% endif %}
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.description.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.description.help_text %}
+                                <small class="form-text text-muted">{{ form.description.help_text }}</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a href="{% url 'boutique:admin_dashboard' %}" class="btn btn-outline-secondary me-md-2">
+                                <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour' %}
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i> {{ submit_text|default:_('Enregistrer') }}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Activation des styles de validation de formulaire Bootstrap
+(function () {
+    'use strict'
+    
+    // Récupérer tous les formulaires auxquels nous voulons appliquer les styles de validation Bootstrap personnalisés
+    var forms = document.querySelectorAll('.needs-validation')
+    
+    // Boucle sur les champs et empêcher la soumission si invalide
+    Array.prototype.slice.call(forms)
+        .forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault()
+                    event.stopPropagation()
+                }
+                
+                form.classList.add('was-validated')
+            }, false)
+        })
+})()
+</script>
+{% endblock %}

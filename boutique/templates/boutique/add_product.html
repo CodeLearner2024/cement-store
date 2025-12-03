@@ -1,0 +1,363 @@
+{% extends "base.html" %}
+{% load static i18n widget_tweaks %}
+
+{% block title %}{% trans "Ajouter un produit" %}{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_dashboard' %}">Tableau de bord</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'boutique:admin_product_list' %}">Produits</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Ajouter un produit</li>
+                </ol>
+            </nav>
+            
+            <h1 class="mb-4">{% trans "Ajouter un nouveau produit" %}</h1>
+            
+            <div class="card">
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger">
+                                {% for error in form.non_field_errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="mb-3">
+                                    <label for="{{ form.name.id_for_label }}" class="form-label">
+                                        {{ form.name.label }}
+                                        {% if form.name.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {% render_field form.name class="form-control" %}
+                                    <div class="invalid-feedback">
+                                        {{ form.name.errors|first }}
+                                    </div>
+                                    {% if form.name.help_text %}
+                                        <small class="form-text text-muted">{{ form.name.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">
+                                        {{ form.description.label }}
+                                        {% if form.description.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {% render_field form.description class="form-control" rows="4" %}
+                                    <div class="invalid-feedback">
+                                        {{ form.description.errors|first }}
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.price.id_for_label }}" class="form-label">
+                                                {{ form.price.label }}
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            <div class="input-group">
+                                                {% render_field form.price class="form-control" %}
+                                                <span class="input-group-text">{{ CURRENCY }}</span>
+                                            </div>
+                                            <div class="invalid-feedback">
+                                                {{ form.price.errors|first }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label for="{{ form.stock_quantity.id_for_label }}" class="form-label">
+                                                {{ form.stock_quantity.label }}
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            {% render_field form.stock_quantity class="form-control" %}
+                                            <div class="invalid-feedback">
+                                                {{ form.stock_quantity.errors|first }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.category.id_for_label }}" class="form-label">
+                                        {{ form.category.label }}
+                                        <span class="text-danger">*</span>
+                                    </label>
+                                    {% render_field form.category class="form-select" %}
+                                    <div class="invalid-feedback">
+                                        {{ form.category.errors|first }}
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label for="{{ form.sku.id_for_label }}" class="form-label">
+                                        {{ form.sku.label }}
+                                        {% if form.sku.field.required %}<span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                    {% render_field form.sku class="form-control" %}
+                                    <div class="invalid-feedback">
+                                        {{ form.sku.errors|first }}
+                                    </div>
+                                    {% if form.sku.help_text %}
+                                        <small class="form-text text-muted">{{ form.sku.help_text }}</small>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="mb-3">
+                                    <label class="form-label">Images du produit</label>
+                                    <input type="file" name="images" class="form-control" multiple accept="image/*">
+                                    <div class="form-text">Sélectionnez une ou plusieurs images pour le produit (formats acceptés: JPG, PNG, GIF).</div>
+                                </div>
+                                
+                                <div id="specifications">
+                                    <h5 class="mt-4 mb-3">Spécifications techniques</h5>
+                                    <div class="specification-item mb-3">
+                                        <div class="row">
+                                            <div class="col-md-5">
+                                                <input type="text" name="spec_name[]" class="form-control" placeholder="Nom de la spécification">
+                                            </div>
+                                            <div class="col-md-5">
+                                                <input type="text" name="spec_value[]" class="form-control" placeholder="Valeur">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <button type="button" class="btn btn-outline-danger remove-spec">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <button type="button" id="add-spec" class="btn btn-outline-secondary btn-sm mb-4">
+                                        <i class="fas fa-plus"></i> Ajouter une spécification
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Publication</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                {% render_field form.is_active class="form-check-input" %}
+                                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                                    {{ form.is_active.label }}
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.publication_date.id_for_label }}" class="form-label">
+                                                {{ form.publication_date.label }}
+                                            </label>
+                                            {% render_field form.publication_date class="form-control" %}
+                                            <div class="invalid-feedback">
+                                                {{ form.publication_date.errors|first }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer text-end">
+                                        <button type="submit" name="save" class="btn btn-primary">
+                                            <i class="fas fa-save me-1"></i> Enregistrer
+                                        </button>
+                                        <button type="submit" name="save_and_add_another" class="btn btn-outline-primary">
+                                            <i class="fas fa-plus-circle me-1"></i> Enregistrer et ajouter un autre
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="card mb-4">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Options avancées</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="{{ form.weight.id_for_label }}" class="form-label">
+                                                {{ form.weight.label }}
+                                            </label>
+                                            <div class="input-group">
+                                                {% render_field form.weight class="form-control" %}
+                                                <span class="input-group-text">kg</span>
+                                            </div>
+                                            <div class="invalid-feedback">
+                                                {{ form.weight.errors|first }}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.dimensions.id_for_label }}" class="form-label">
+                                                {{ form.dimensions.label }}
+                                            </label>
+                                            {% render_field form.dimensions class="form-control" %}
+                                            <div class="invalid-feedback">
+                                                {{ form.dimensions.errors|first }}
+                                            </div>
+                                            <div class="form-text">Format: Longueur x Largeur x Hauteur (en cm)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Référencement (SEO)</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="mb-3">
+                                            <label for="{{ form.meta_title.id_for_label }}" class="form-label">
+                                                {{ form.meta_title.label }}
+                                            </label>
+                                            {% render_field form.meta_title class="form-control" %}
+                                            <div class="invalid-feedback">
+                                                {{ form.meta_title.errors|first }}
+                                            </div>
+                                            <div class="form-text">
+                                                <span id="meta-title-count">0</span>/60 caractères
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.meta_description.id_for_label }}" class="form-label">
+                                                {{ form.meta_description.label }}
+                                            </label>
+                                            {% render_field form.meta_description class="form-control" rows="3" %}
+                                            <div class="invalid-feedback">
+                                                {{ form.meta_description.errors|first }}
+                                            </div>
+                                            <div class="form-text">
+                                                <span id="meta-desc-count">0</span>/160 caractères
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <label for="{{ form.slug.id_for_label }}" class="form-label">
+                                                {{ form.slug.label }}
+                                            </label>
+                                            <div class="input-group">
+                                                {% render_field form.slug class="form-control" %}
+                                                <button class="btn btn-outline-secondary" type="button" id="generate-slug">
+                                                    <i class="fas fa-sync-alt"></i>
+                                                </button>
+                                            </div>
+                                            <div class="invalid-feedback">
+                                                {{ form.slug.errors|first }}
+                                            </div>
+                                            <div class="form-text">L'URL conviviale pour le référencement</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Gestion des spécifications techniques
+document.addEventListener('DOMContentLoaded', function() {
+    // Ajouter une nouvelle spécification
+    document.getElementById('add-spec').addEventListener('click', function() {
+        const specItem = document.querySelector('.specification-item').cloneNode(true);
+        const inputs = specItem.querySelectorAll('input');
+        inputs.forEach(input => input.value = '');
+        
+        const removeBtn = specItem.querySelector('.remove-spec');
+        removeBtn.addEventListener('click', function() {
+            specItem.remove();
+        });
+        
+        document.querySelector('#specifications').insertBefore(specItem, this);
+    });
+    
+    // Supprimer une spécification
+    document.querySelectorAll('.remove-spec').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.specification-item').remove();
+        });
+    });
+    
+    // Générer le slug à partir du nom du produit
+    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+    const slugInput = document.getElementById('{{ form.slug.id_for_label }}');
+    const generateSlugBtn = document.getElementById('generate-slug');
+    
+    function generateSlug(text) {
+        return text.toLowerCase()
+            .replace(/[^\w\s-]/g, '') // Supprime les caractères non alphanumériques
+            .replace(/\s+/g, '-')      // Remplace les espaces par des tirets
+            .replace(/--+/g, '-')       // Supprime les tirets multiples
+            .trim();
+    }
+    
+    if (nameInput && slugInput && generateSlugBtn) {
+        generateSlugBtn.addEventListener('click', function() {
+            if (nameInput.value) {
+                slugInput.value = generateSlug(nameInput.value);
+            }
+        });
+    }
+    
+    // Compteurs de caractères pour le SEO
+    const metaTitle = document.getElementById('{{ form.meta_title.id_for_label }}');
+    const metaDesc = document.getElementById('{{ form.meta_description.id_for_label }}');
+    const metaTitleCount = document.getElementById('meta-title-count');
+    const metaDescCount = document.getElementById('meta-desc-count');
+    
+    function updateCount(element, counter, max) {
+        if (element && counter) {
+            const length = element.value.length;
+            counter.textContent = length;
+            counter.style.color = length > max ? 'red' : '';
+        }
+    }
+    
+    if (metaTitle && metaTitleCount) {
+        metaTitle.addEventListener('input', function() {
+            updateCount(this, metaTitleCount, 60);
+        });
+        updateCount(metaTitle, metaTitleCount, 60);
+    }
+    
+    if (metaDesc && metaDescCount) {
+        metaDesc.addEventListener('input', function() {
+            updateCount(this, metaDescCount, 160);
+        });
+        updateCount(metaDesc, metaDescCount, 160);
+    }
+    
+    // Validation des formulaires Bootstrap
+    (function() {
+        'use strict';
+        
+        // Récupérer tous les formulaires auxquels nous voulons ajouter la validation
+        var forms = document.querySelectorAll('.needs-validation');
+        
+        // Boucle sur les formulaires et empêcher la soumission
+        Array.prototype.slice.call(forms).forEach(function(form) {
+            form.addEventListener('submit', function(event) {
+                if (!form.checkValidity()) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                form.classList.add('was-validated');
+            }, false);
+        });
+    })();
+});
+</script>
+{% endblock %}
