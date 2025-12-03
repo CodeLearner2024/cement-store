@@ -1,0 +1,718 @@
+{% extends "boutique/base.html" %}
+{% load static %}
+
+{% block title %}Ajouter un produit - Administration{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<style>
+    /* Style général */
+    .content {
+        padding: 20px 30px;
+    }
+    
+    /* En-tête de la page */
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    /* Carte principale */
+    .card {
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa;
+        padding: 15px 20px;
+        border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .card-title {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    .card-body {
+        padding: 20px;
+    }
+    
+    /* Formulaire */
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 500;
+        color: #495057;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 10px 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    textarea.form-control {
+        min-height: 100px;
+        resize: vertical;
+    }
+    
+    /* Boutons d'action */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 500;
+        line-height: 1.5;
+        text-align: center;
+        text-decoration: none;
+        white-space: nowrap;
+        vertical-align: middle;
+        cursor: pointer;
+        border: 1px solid transparent;
+        border-radius: 4px;
+        transition: all 0.15s ease-in-out;
+    }
+    
+    .btn i {
+        margin-right: 6px;
+    }
+    
+    .btn-primary {
+        color: #fff;
+        background-color: #3498db;
+        border-color: #3498db;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2980b9;
+        border-color: #2980b9;
+    }
+    
+    .btn-secondary {
+        color: #333;
+        background-color: #f8f9fa;
+        border-color: #ddd;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #e9ecef;
+        border-color: #ced4da;
+    }
+    
+    /* Section d'images */
+    .image-upload {
+        border: 2px dashed #ddd;
+        border-radius: 8px;
+        padding: 20px;
+        text-align: center;
+        margin-bottom: 20px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .image-upload:hover {
+        border-color: #3498db;
+        background-color: #f8f9fa;
+    }
+    
+    .image-upload i {
+        font-size: 36px;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    
+    .image-upload p {
+        margin: 0;
+        color: #6c757d;
+    }
+    
+    .image-preview {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 15px;
+        margin-top: 15px;
+    }
+    
+    .preview-item {
+        position: relative;
+        width: 120px;
+        height: 120px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    
+    .preview-item img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+    
+    .preview-remove {
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        width: 24px;
+        height: 24px;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    
+    /* Onglets */
+    .nav-tabs {
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    .nav-tabs .nav-link {
+        border: 1px solid transparent;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        padding: 10px 20px;
+        color: #6c757d;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+    
+    .nav-tabs .nav-link.active {
+        color: #3498db;
+        background-color: #fff;
+        border-color: #dee2e6 #dee2e6 #fff;
+    }
+    
+    .nav-tabs .nav-link:hover:not(.active) {
+        border-color: #e9ecef #e9ecef #dee2e6;
+    }
+    
+    .tab-content {
+        padding: 20px 0;
+    }
+    
+    /* Éditeur de texte riche */
+    .django-ckeditor-widget {
+        width: 100% !important;
+    }
+    
+    /* Champs de prix et quantité */
+    .input-group {
+        position: relative;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        width: 100%;
+    }
+    
+    .input-group-text {
+        display: flex;
+        align-items: center;
+        padding: 8px 12px;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #495057;
+        text-align: center;
+        white-space: nowrap;
+        background-color: #e9ecef;
+        border: 1px solid #ced4da;
+        border-radius: 4px 0 0 4px;
+    }
+    
+    .input-group input {
+        position: relative;
+        flex: 1 1 auto;
+        width: 1%;
+        min-width: 0;
+        margin-bottom: 0;
+        border-radius: 0 4px 4px 0 !important;
+    }
+    
+    /* Messages d'erreur */
+    .errorlist {
+        color: #dc3545;
+        margin-top: 5px;
+        padding-left: 20px;
+    }
+    
+    .errorlist li {
+        list-style-type: none;
+        font-size: 13px;
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .content {
+            padding: 15px;
+        }
+        
+        .page-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 15px;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <form method="post" enctype="multipart/form-data" id="product-form">
+        {% csrf_token %}
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-info-circle"></i> Informations générales
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.name.id_for_label }}">
+                                Nom du produit <span class="text-danger">*</span>
+                            </label>
+                            {{ form.name }}
+                            {{ form.name.errors }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.slug.id_for_label }}">
+                                URL personnalisée
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">
+                                    {{ request.scheme }}://{{ request.get_host }}/produit/
+                                </span>
+                                {{ form.slug }}
+                            </div>
+                            <small class="form-text text-muted">
+                                Laissez vide pour générer automatiquement à partir du nom du produit.
+                            </small>
+                            {{ form.slug.errors }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.description.id_for_label }}">
+                                Description
+                            </label>
+                            {{ form.description }}
+                            {{ form.description.errors }}
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.category.id_for_label }}">
+                                Catégorie <span class="text-danger">*</span>
+                            </label>
+                            {{ form.category }}
+                            {{ form.category.errors }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.sku.id_for_label }}">
+                                Référence (SKU)
+                            </label>
+                            {{ form.sku }}
+                            {{ form.sku.errors }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.price.id_for_label }}">
+                                Prix (€) <span class="text-danger">*</span>
+                            </label>
+                            {{ form.price }}
+                            {{ form.price.errors }}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">
+                                Quantité en stock
+                            </label>
+                            {{ form.stock_quantity }}
+                            {{ form.stock_quantity.errors }}
+                        </div>
+                        
+                        <div class="form-group form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                Produit actif
+                            </label>
+                            {{ form.is_active.errors }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-images"></i> Images du produit
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="image-upload" id="image-upload-area">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Glissez et déposez des images ici ou cliquez pour sélectionner</p>
+                    <input type="file" name="images" id="image-upload" multiple accept="image/*" style="display: none;">
+                </div>
+                
+                <div class="image-preview" id="image-preview">
+                    <!-- Les aperçus d'images seront ajoutés ici dynamiquement -->
+                </div>
+                
+                <div class="form-text">
+                    La première image sera utilisée comme image principale du produit.
+                    Taille recommandée : 800x800px. Formats acceptés : JPG, PNG, WebP.
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-tags"></i> Mots-clés et référencement
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.meta_title.id_for_label }}">
+                        Méta-titre (pour le référencement)
+                    </label>
+                    {{ form.meta_title }}
+                    <small class="form-text text-muted">
+                        Maximum 60 caractères. <span id="meta-title-count">0</span>/60
+                    </small>
+                    {{ form.meta_title.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.meta_description.id_for_label }}">
+                        Méta-description (pour le référencement)
+                    </label>
+                    {{ form.meta_description }}
+                    <small class="form-text text-muted">
+                        Maximum 160 caractères. <span id="meta-desc-count">0</span>/160
+                    </small>
+                    {{ form.meta_description.errors }}
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.tags.id_for_label }}">
+                        Mots-clés
+                    </label>
+                    {{ form.tags }}
+                    <small class="form-text text-muted">
+                        Séparez les mots-clés par des virgules.
+                    </small>
+                    {{ form.tags.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <i class="fas fa-cog"></i> Options avancées
+                </h2>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.weight.id_for_label }}">
+                                Poids (kg)
+                            </label>
+                            {{ form.weight }}
+                            {{ form.weight.errors }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label class="form-label" for="{{ form.dimensions.id_for_label }}">
+                                Dimensions (L x l x H en cm)
+                            </label>
+                            {{ form.dimensions }}
+                            {{ form.dimensions.errors }}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label" for="{{ form.additional_info.id_for_label }}">
+                        Informations complémentaires
+                    </label>
+                    {{ form.additional_info }}
+                    <small class="form-text text-muted">
+                        Ces informations seront affichées dans un onglet supplémentaire sur la fiche produit.
+                    </small>
+                    {{ form.additional_info.errors }}
+                </div>
+            </div>
+        </div>
+        
+        <div class="form-actions">
+            <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-secondary">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+            <button type="submit" name="_save" class="btn btn-primary">
+                <i class="fas fa-save"></i> Enregistrer
+            </button>
+            <button type="submit" name="_addanother" class="btn btn-outline-primary">
+                <i class="fas fa-plus-circle"></i> Enregistrer et en ajouter un autre
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.ckeditor.com/4.25.1-lts/standard/ckeditor.js"></script>
+
+<script>
+$(document).ready(function() {
+    // Initialisation de Select2 pour les champs de sélection
+    $('select').select2({
+        theme: 'bootstrap4',
+        width: '100%'
+    });
+    
+    // Initialisation de CKEditor pour les champs de texte enrichi
+    if (typeof CKEDITOR !== 'undefined') {
+        CKEDITOR.replace('id_description', {
+            toolbar: [
+                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+                { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                { name: 'links', items: ['Link', 'Unlink'] },
+                { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+                { name: 'styles', items: ['Styles', 'Format', 'Font', 'FontSize'] },
+                { name: 'colors', items: ['TextColor', 'BGColor'] },
+                { name: 'tools', items: ['Maximize'] }
+            ],
+            height: 300
+        });
+        
+        CKEDITOR.replace('id_additional_info', {
+            toolbar: [
+                { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike', 'Subscript', 'Superscript', '-', 'RemoveFormat'] },
+                { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'Blockquote'] },
+                { name: 'links', items: ['Link', 'Unlink'] },
+                { name: 'insert', items: ['Table', 'HorizontalRule', 'SpecialChar'] },
+                { name: 'styles', items: ['Styles', 'Format'] },
+                { name: 'tools', items: ['Maximize'] }
+            ],
+            height: 200
+        });
+    }
+    
+    // Gestion du glisser-déposer d'images
+    const imageUploadArea = document.getElementById('image-upload-area');
+    const imageUploadInput = document.getElementById('image-upload');
+    const imagePreview = document.getElementById('image-preview');
+    
+    // Gestion du clic sur la zone de dépôt
+    imageUploadArea.addEventListener('click', () => {
+        imageUploadInput.click();
+    });
+    
+    // Gestion du survol de la zone de dépôt
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, preventDefaults, false);
+    });
+    
+    function preventDefaults(e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Mise en surbrillance de la zone de dépôt lors du survol
+    ['dragenter', 'dragover'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, highlight, false);
+    });
+    
+    ['dragleave', 'drop'].forEach(eventName => {
+        imageUploadArea.addEventListener(eventName, unhighlight, false);
+    });
+    
+    function highlight() {
+        imageUploadArea.style.borderColor = '#3498db';
+        imageUploadArea.style.backgroundColor = '#f8f9fa';
+    }
+    
+    function unhighlight() {
+        imageUploadArea.style.borderColor = '#ddd';
+        imageUploadArea.style.backgroundColor = '';
+    }
+    
+    // Gestion du dépôt de fichiers
+    imageUploadArea.addEventListener('drop', handleDrop, false);
+    
+    function handleDrop(e) {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFiles(files);
+    }
+    
+    // Gestion de la sélection de fichiers via le bouton
+    imageUploadInput.addEventListener('change', function() {
+        handleFiles(this.files);
+    });
+    
+    function handleFiles(files) {
+        [...files].forEach(file => {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const previewItem = document.createElement('div');
+                    previewItem.className = 'preview-item';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    
+                    const removeBtn = document.createElement('div');
+                    removeBtn.className = 'preview-remove';
+                    removeBtn.innerHTML = '&times;';
+                    removeBtn.onclick = function() {
+                        previewItem.remove();
+                    };
+                    
+                    previewItem.appendChild(img);
+                    previewItem.appendChild(removeBtn);
+                    imagePreview.appendChild(previewItem);
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+    
+    // Génération automatique du slug à partir du nom
+    $('#id_name').on('keyup', function() {
+        if (!$('#id_slug').val() || $('#id_slug').data('user-modified') !== true) {
+            const slug = $(this).val()
+                .toLowerCase()
+                .replace(/[^\w\s-]/g, '') // Supprime les caractères spéciaux
+                .replace(/\s+/g, '-')      // Remplace les espaces par des tirets
+                .replace(/--+/g, '-');      // Supprime les tirets multiples
+            $('#id_slug').val(slug);
+        }
+    });
+    
+    // Marquer le slug comme modifié par l'utilisateur
+    $('#id_slug').on('keydown', function() {
+        $(this).data('user-modified', true);
+    });
+    
+    // Compteur de caractères pour le méta-titre
+    $('#id_meta_title').on('input', function() {
+        const count = $(this).val().length;
+        $('#meta-title-count').text(count);
+    });
+    
+    // Compteur de caractères pour la méta-description
+    $('#id_meta_description').on('input', function() {
+        const count = $(this).val().length;
+        $('#meta-desc-count').text(count);
+    });
+    
+    // Initialisation des compteurs
+    if ($('#id_meta_title').val()) {
+        $('#meta-title-count').text($('#id_meta_title').val().length);
+    }
+    
+    if ($('#id_meta_description').val()) {
+        $('#meta-desc-count').text($('#id_meta_description').val().length);
+    }
+    
+    // Validation du formulaire
+    $('#product-form').on('submit', function(e) {
+        let isValid = true;
+        
+        // Validation du champ nom
+        if (!$('#id_name').val().trim()) {
+            alert('Veuillez saisir un nom pour le produit.');
+            isValid = false;
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validation du champ catégorie
+        if (!$('#id_category').val()) {
+            alert('Veuillez sélectionner une catégorie.');
+            isValid = false;
+            e.preventDefault();
+            return false;
+        }
+        
+        // Validation du champ prix
+        const price = parseFloat($('#id_price').val().replace(',', '.'));
+        if (isNaN(price) || price <= 0) {
+            alert('Veuillez saisir un prix valide.');
+            isValid = false;
+            e.preventDefault();
+            return false;
+        }
+        
+        return isValid;
+    });
+});
+</script>
+{% endblock %}

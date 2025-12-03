@@ -1,7 +1,13 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 from django.utils.html import format_html
+from django.urls import path, reverse
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.http import HttpResponseRedirect
+
 from .models import Category, Product, ProductImage, Cart, CartItem, Order, OrderItem, Review
+from .admin_views_custom import CustomProductCreateView
 
 
 class CategoryAdmin(admin.ModelAdmin):
@@ -48,6 +54,22 @@ class ProductAdmin(admin.ModelAdmin):
     list_editable = ('price', 'stock', 'available')
     search_fields = ('name', 'description', 'category__name')
     prepopulated_fields = {'slug': ('name',)}
+    
+    def get_urls(self):
+        # Récupérer les URLs par défaut
+        urls = super().get_urls()
+        
+        # Ajouter notre URL personnalisée pour l'ajout de produit
+        custom_urls = [
+            path(
+                'add/',
+                self.admin_site.admin_view(CustomProductCreateView.as_view()),
+                name='boutique_product_add',
+            ),
+        ]
+        
+        # Retourner nos URLs personnalisées + les URLs par défaut
+        return custom_urls + urls
     fieldsets = (
         (None, {
             'fields': ('name', 'slug', 'category', 'description')

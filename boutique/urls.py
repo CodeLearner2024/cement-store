@@ -3,6 +3,7 @@ from django.views.generic import RedirectView
 from django.utils.translation import gettext_lazy as _
 from . import views
 from . import views_landing
+from .views_admin import ProductCreateView as CustomProductCreateView
 from .admin_views import (
     CategoryListView, CategoryUpdateView, CategoryDeleteView,
     ProductListView, ProductCreateView, ProductUpdateView, ProductDeleteView,
@@ -55,7 +56,7 @@ urlpatterns = [
     
     # Gestion des produits - Nouvelle interface
     path('admin/produits/', ProductListView.as_view(), name='admin_product_list'),
-    path('admin/produits/ajouter/', views.ProductAddView.as_view(), name='admin_product_add'),
+    path('admin/produits/ajouter/', CustomProductCreateView.as_view(), name='admin_product_add'),
     path('admin/produits/<int:pk>/modifier/', ProductUpdateView.as_view(), name='admin_product_edit'),
     path('admin/produits/<int:pk>/supprimer/', ProductDeleteView.as_view(), name='admin_product_delete'),
     path('admin/produits/images/<int:pk>/supprimer/', views.delete_product_image, name='delete_product_image'),
