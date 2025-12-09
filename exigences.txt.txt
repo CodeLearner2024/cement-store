@@ -1,8 +1,0 @@
-Django==5.2.1
-psycopg2-binary==2.9.10
-whitenoise==6.8.2
-gunicorn==23.0.0
-python-decouple==3.8
-pillow==11.1.0
-django-crispy-forms==2.3
-crispy-bootstrap5==2024.10
