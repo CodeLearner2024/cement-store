@@ -53,9 +53,7 @@
 
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-bottom py-3">
-                    <h5 class="mb-0">
-                        <i class="fas fa-plus-circle text-primary me-2"></i>{% trans 'Détails de la catégorie' %}
-                    </h5>
+                    
                 </div>
                 <div class="card-body p-4">
                     <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
@@ -91,9 +89,7 @@
                                     <i class="fas fa-exclamation-circle me-1"></i>{{ form.name.errors.0 }}
                                 </div>
                             {% endif %}
-                            <div class="form-text text-muted">
-                                <i class="fas fa-info-circle me-1"></i>{% trans 'Le nom de la catégorie tel qu\'il apparaîtra sur le site.' %}
-                            </div>
+                        
                         </div>
 
                         <!-- Image de la catégorie -->
@@ -123,9 +119,7 @@
                                     <i class="fas fa-exclamation-circle me-1"></i>{{ form.image.errors.0 }}
                                 </div>
                             {% endif %}
-                            <div class="form-text text-muted">
-                                <i class="fas fa-info-circle me-1"></i>{% trans 'Image représentative de la catégorie (format recommandé : 800×600px)' %}
-                            </div>
+                
                         </div>
 
                         <!-- Description de la catégorie -->
@@ -149,9 +143,7 @@
                                     <i class="fas fa-exclamation-circle me-1"></i>{{ form.description.errors.0 }}
                                 </div>
                             {% endif %}
-                            <div class="form-text text-muted">
-                                <i class="fas fa-info-circle me-1"></i>{% trans 'Une description détaillée de la catégorie pour les moteurs de recherche.' %}
-                            </div>
+                    
                         </div>
 
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -163,20 +155,6 @@
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            <div class="alert alert-info mt-4">
-                <div class="d-flex">
-                    <div class="flex-shrink-0">
-                        <i class="fas fa-lightbulb fa-2x text-info"></i>
-                    </div>
-                    <div class="ms-3">
-                        <h5 class="alert-heading">{% trans 'Conseil' %}</h5>
-                        <p class="mb-0">
-                            {% trans 'Pensez à utiliser des mots-clés pertinents dans le nom et la description pour améliorer le référencement de votre catégorie.' %}
-                        </p>
-                    </div>
                 </div>
             </div>
         </div>

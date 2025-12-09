@@ -17,8 +17,52 @@ class Category(models.Model):
     slug = models.SlugField(_('slug'), max_length=200, unique=True)
     image = models.ImageField(_('image'), upload_to='categories/%Y/%m/%d', blank=True)
     description = models.TextField(_('description'), blank=True)
+    
+    # Stock management fields
+    manage_stock = models.BooleanField(
+        _('gérer le stock'),
+        default=False,
+        help_text=_('Si activé, vous pourrez gérer le stock pour cette catégorie')
+    )
+    stock_quantity = models.PositiveIntegerField(
+        _('quantité en stock'),
+        default=0,
+        help_text=_('Quantité totale en stock pour cette catégorie')
+    )
+    low_stock_threshold = models.PositiveIntegerField(
+        _('seuil d\'alerte de stock'),
+        default=5,
+        help_text=_('Seuil à partir duquel une alerte de stock faible sera déclenchée')
+    )
+    backorder_allowed = models.BooleanField(
+        _('autoriser les commandes en rupture de stock'),
+        default=False,
+        help_text=_('Si activé, les clients pourront commander même si le stock est épuisé')
+    )
+    stock_status = models.CharField(
+        _('état du stock'),
+        max_length=20,
+        choices=[
+            ('in_stock', _('En stock')),
+            ('low_stock', _('Stock faible')),
+            ('out_of_stock', _('Rupture de stock')),
+        ],
+        default='in_stock'
+    )
+    
     created_at = models.DateTimeField(_('créé le'), auto_now_add=True)
     updated_at = models.DateTimeField(_('mis à jour le'), auto_now=True)
+    
+    def update_stock_status(self):
+        """Met à jour l'état du stock en fonction de la quantité disponible"""
+        if self.stock_quantity <= 0:
+            self.stock_status = 'out_of_stock'
+        elif self.stock_quantity <= self.low_stock_threshold:
+            self.stock_status = 'low_stock'
+        else:
+            self.stock_status = 'in_stock'
+        self.save(update_fields=['stock_status', 'updated_at'])
+        return self.stock_status
 
     class Meta:
         ordering = ('name',)

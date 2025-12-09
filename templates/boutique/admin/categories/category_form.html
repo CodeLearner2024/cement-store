@@ -1,193 +1,327 @@
 {% extends 'boutique/admin/base.html' %}
 {% load i18n static %}
 
-{% block title %}{% if form.instance.pk %}{% trans 'Modifier la catégorie' %}{% else %}{% trans 'Ajouter une catégorie' %}{% endif %}{% endblock %}
+{% block title %}Nouvelle catégorie{% endblock %}
+
+{% block extra_css %}
+<style>
+    body {
+        background-color: #f5f7fa;
+        min-height: 100vh;
+        padding: 2rem 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    }
+    
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    
+    .form-header {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid #eaeef2;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .form-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .form-body {
+        padding: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2.5rem;
+    }
+    
+    .section-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid #eaeef2;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4a5568;
+        font-size: 0.9375rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        font-size: 0.9375rem;
+        transition: all 0.2s;
+        background-color: #fff;
+    }
+    
+    .form-control:focus {
+        border-color: #4a90e2;
+        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.2);
+        outline: none;
+    }
+    
+    .form-text {
+        display: block;
+        margin-top: 0.5rem;
+        color: #718096;
+        font-size: 0.8125rem;
+        line-height: 1.4;
+    }
+    
+    .image-upload {
+        border: 2px dashed #cbd5e0;
+        border-radius: 6px;
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s;
+        background-color: #f8fafc;
+    }
+    
+    .image-upload:hover {
+        border-color: #a0aec0;
+        background-color: #f1f5f9;
+    }
+    
+    .upload-icon {
+        font-size: 2.5rem;
+        color: #a0aec0;
+        margin-bottom: 1rem;
+    }
+    
+    .upload-text {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #4a5568;
+        margin-bottom: 0.5rem;
+    }
+    
+    .upload-subtext {
+        color: #718096;
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.625rem 1.5rem;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: 1px solid transparent;
+    }
+    
+    .btn-outline {
+        background: transparent;
+        border-color: #e2e8f0;
+        color: #4a5568;
+    }
+    
+    .btn-outline:hover {
+        background-color: #f8fafc;
+        border-color: #cbd5e0;
+    }
+    
+    .btn-primary {
+        background-color: #4a90e2;
+        color: white;
+        border-color: #4a90e2;
+    }
+    
+    .btn-primary:hover {
+        background-color: #3b7bc9;
+        border-color: #3b7bc9;
+    }
+    
+    .btn-sm {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn i {
+        margin-right: 0.5rem;
+    }
+    
+    .form-footer {
+        padding: 1.5rem 2rem;
+        background-color: #f8fafc;
+        border-top: 1px solid #eaeef2;
+        display: flex;
+        justify-content: flex-end;
+        gap: 0.75rem;
+    }
+    
+    .image-preview {
+        max-width: 100%;
+        max-height: 200px;
+        margin: 1rem 0;
+        display: none;
+        border-radius: 4px;
+    }
+    
+    .required-field::after {
+        content: '*';
+        color: #e53e3e;
+        margin-left: 0.25rem;
+    }
+    
+    .char-counter {
+        font-size: 0.75rem;
+        color: #718096;
+        text-align: right;
+        margin-top: 0.25rem;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container">
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0">
-                            {% if form.instance.pk %}
-                                {% trans 'Modifier la catégorie' %}
-                            {% else %}
-                                {% trans 'Ajouter une nouvelle catégorie' %}
-                            {% endif %}
-                        </h5>
-                        <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-sm btn-outline-secondary">
-                            <i class="fas fa-arrow-left me-1"></i> {% trans 'Retour' %}
-                        </a>
+    <div class="form-container">
+        <!-- En-tête du formulaire -->
+        <div class="form-header">
+            <h1>Nouvelle catégorie</h1>
+            <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Annuler
+            </a>
+        </div>
+        
+        <!-- Corps du formulaire -->
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="form-body">
+                <div class="form-section">
+                    
+                    <!-- Champ Nom de la catégorie -->
+                    <div class="form-group">
+                        <label for="name" class="form-label required-field">Nom de la catégorie</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                        <span class="form-text">Le nom de la catégorie tel qu'il apparaîtra sur le site.</span>
                     </div>
-                </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                            <div class="alert alert-danger">
-                                {% for error in form.non_field_errors %}
-                                    {{ error }}
-                                {% endfor %}
+                    
+                    <!-- Champ Image de la catégorie -->
+                    <div class="form-group">
+                        <label class="form-label">Image de la catégorie</label>
+                        <div class="image-upload" onclick="document.getElementById('image').click()">
+                            <div class="upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
                             </div>
-                        {% endif %}
-                        
-                        <div class="row mb-3">
-                            <div class="col-md-8">
-                                <div class="form-group mb-3">
-                                    <label for="{{ form.name.id_for_label }}" class="form-label">
-                                        {{ form.name.label }}
-                                        {% if form.name.field.required %}<span class="text-danger">*</span>{% endif %}
-                                    </label>
-                                    {{ form.name }}
-                                    {% if form.name.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.name.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">{{ form.name.help_text }}</div>
-                                </div>
-                                
-                                <div class="form-group mb-3">
-                                    <label for="{{ form.slug.id_for_label }}" class="form-label">
-                                        {{ form.slug.label }}
-                                        {% if form.slug.field.required %}<span class="text-danger">*</span>{% endif %}
-                                    </label>
-                                    <div class="input-group">
-                                        {{ form.slug }}
-                                        <button class="btn btn-outline-secondary" type="button" id="generate-slug">
-                                            <i class="fas fa-sync-alt"></i>
-                                        </button>
-                                    </div>
-                                    {% if form.slug.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.slug.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                    <div class="form-text">{{ form.slug.help_text }}</div>
-                                </div>
-                                
-                                <div class="form-group mb-3">
-                                    <label for="{{ form.description.id_for_label }}" class="form-label">
-                                        {{ form.description.label }}
-                                    </label>
-                                    {{ form.description }}
-                                    {% if form.description.errors %}
-                                        <div class="invalid-feedback d-block">
-                                            {{ form.description.errors.0 }}
-                                        </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            
-                            <div class="col-md-4">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h6 class="mb-0">{% trans 'Image de la catégorie' %}</h6>
-                                    </div>
-                                    <div class="card-body text-center">
-                                        {% if form.instance.image %}
-                                            <img id="category-image-preview" src="{{ form.instance.image.url }}" 
-                                                 class="img-fluid mb-3" style="max-height: 200px; object-fit: contain;">
-                                        {% else %}
-                                            <div id="category-image-preview" class="bg-light d-flex align-items-center justify-content-center mb-3" 
-                                                 style="height: 200px; border: 1px dashed #ccc; border-radius: 4px;">
-                                                <div class="text-center p-3">
-                                                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
-                                                    <p class="mb-0 text-muted small">{% trans 'Aucune image' %}</p>
-                                                </div>
-                                            </div>
-                                        {% endif %}
-                                        
-                                        <div class="form-group">
-                                            <label for="{{ form.image.id_for_label }}" class="form-label">
-                                                {{ form.image.label }}
-                                            </label>
-                                            {{ form.image }}
-                                            {% if form.image.errors %}
-                                                <div class="invalid-feedback d-block">
-                                                    {{ form.image.errors.0 }}
-                                                </div>
-                                            {% endif %}
-                                            <div class="form-text">{{ form.image.help_text }}</div>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="d-grid gap-2 mt-3">
-                                    <button type="submit" class="btn btn-primary">
-                                        <i class="fas fa-save me-1"></i>
-                                        {% if form.instance.pk %}{% trans 'Mettre à jour' %}{% else %}{% trans 'Créer' %}{% endif %}
-                                    </button>
-                                    <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-outline-secondary">
-                                        <i class="fas fa-times me-1"></i> {% trans 'Annuler' %}
-                                    </a>
-                                </div>
+                            <div class="upload-text">Uploader ou glisser-déposer une image ici</div>
+                            <div class="upload-subtext">Formats supportés : JPG, PNG, WEBP (max. 5 Mo)</div>
+                            <button type="button" class="btn btn-outline btn-sm">
+                                <i class="fas fa-folder-open"></i> Parcourir
+                            </button>
+                            <input type="file" id="image" name="image" accept="image/jpeg,image/png,image/webp" style="display: none;" onchange="previewImage(this)">
+                            <div id="imagePreviewContainer" style="display: none;">
+                                <img id="imagePreview" class="image-preview" alt="Aperçu de l'image">
                             </div>
                         </div>
-                    </form>
+                    </div>
+                    
+                    <!-- Champ Description -->
+                    <div class="form-group">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="4" oninput="updateCharCounter(this, 'description-counter')"></textarea>
+                        <div class="d-flex justify-content-between">
+                            <span class="form-text">Une description détaillée de la catégorie pour les moteurs de recherche.</span>
+                            <span id="description-counter" class="char-counter">0/500</span>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
+            
+            <!-- Pied de page du formulaire -->
+            <div class="form-footer">
+                <a href="{% url 'boutique:admin_category_list' %}" class="btn btn-outline">
+                    <i class="fas fa-times"></i> Annuler
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Créer
+                </button>
+            </div>
+        </form>
     </div>
 </div>
-{% endblock %}
 
-{% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Génération automatique du slug à partir du nom
-        const nameField = document.getElementById('{{ form.name.id_for_label }}');
-        const slugField = document.getElementById('{{ form.slug.id_for_label }}');
-        const generateSlugBtn = document.getElementById('generate-slug');
-        
-        function slugify(text) {
-            return text.toString().toLowerCase()
-                .replace(/\s+/g, '-')           // Remplace les espaces par des tirets
-                .replace(/[^\w\-]+/g, '')       // Supprime les caractères non alphanumériques
-                .replace(/\-\-+/g, '-')          // Remplace les tirets multiples par un seul
-                .replace(/^-+/, '')               // Supprime les tirets du début
-                .replace(/-+$/, '');              // Supprime les tirets de fin
+// Aperçu de l'image
+function previewImage(input) {
+    const preview = document.getElementById('imagePreview');
+    const container = document.getElementById('imagePreviewContainer');
+    const file = input.files[0];
+    
+    if (file) {
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Le fichier est trop volumineux. Taille maximale : 5 Mo');
+            input.value = '';
+            return;
         }
         
-        // Générer le slug lorsque le bouton est cliqué
-        if (generateSlugBtn) {
-            generateSlugBtn.addEventListener('click', function() {
-                if (nameField.value) {
-                    slugField.value = slugify(nameField.value);
-                }
-            });
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            preview.src = e.target.result;
+            container.style.display = 'block';
+            preview.style.display = 'block';
+            
+            // Mise à jour du style de la zone de dépôt
+            const uploadZone = input.closest('.image-upload');
+            uploadZone.style.padding = '1.5rem';
+            uploadZone.querySelector('.upload-icon').style.display = 'none';
+            uploadZone.querySelector('.upload-text').style.display = 'none';
+            uploadZone.querySelector('.upload-subtext').style.display = 'none';
+            uploadZone.querySelector('.btn').style.display = 'none';
         }
-        
-        // Mise à jour de l'aperçu de l'image
-        const imageInput = document.getElementById('{{ form.image.id_for_label }}');
-        const imagePreview = document.getElementById('category-image-preview');
-        
-        if (imageInput && imagePreview) {
-            imageInput.addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (file) {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        if (imagePreview.tagName === 'IMG') {
-                            imagePreview.src = e.target.result;
-                        } else {
-                            // Si c'est une div de prévisualisation vide, la remplacer par une image
-                            const img = document.createElement('img');
-                            img.id = 'category-image-preview';
-                            img.src = e.target.result;
-                            img.className = 'img-fluid mb-3';
-                            img.style.maxHeight = '200px';
-                            img.style.objectFit = 'contain';
-                            imagePreview.parentNode.replaceChild(img, imagePreview);
-                        }
-                    }
-                    reader.readAsDataURL(file);
-                }
-            });
-        }
-    });
+        reader.readAsDataURL(file);
+    }
+}
+
+// Compteur de caractères pour la description
+function updateCharCounter(textarea, counterId) {
+    const counter = document.getElementById(counterId);
+    const maxLength = 500;
+    const currentLength = textarea.value.length;
+    
+    counter.textContent = currentLength + '/' + maxLength;
+    
+    if (currentLength > maxLength * 0.8) {
+        counter.classList.add('text-warning');
+    } else {
+        counter.classList.remove('text-warning');
+    }
+}
+
+// Initialisation du compteur de caractères
+document.addEventListener('DOMContentLoaded', function() {
+    const descriptionField = document.getElementById('description');
+    if (descriptionField) {
+        updateCharCounter(descriptionField, 'description-counter');
+    }
+});
 </script>
 {% endblock %}

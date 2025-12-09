@@ -1137,3 +1137,83 @@ class AddCategoryView(LoginRequiredMixin, UserPassesTestMixin, View):
 class LegalNoticeView(TemplateView):
     """Vue pour afficher les mentions légales"""
     template_name = 'boutique/legal_notice.html'
+
+
+def process_payment(request):
+    """
+    Traite le paiement via les différents modes de paiement mobiles
+    """
+    if request.method == 'POST':
+        # Vérifier si c'est une requête AJAX
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        
+        # Récupérer les données du formulaire
+        payment_method = request.POST.get('payment_method')
+        phone_number = request.POST.get('phone_number')
+        
+        # Récupérer le panier de l'utilisateur
+        cart, created = Cart.objects.get_or_create(user=request.user if request.user.is_authenticated else None)
+        
+        if not cart.items.exists():
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Votre panier est vide.'
+                }, status=400)
+            messages.error(request, "Votre panier est vide.")
+            return redirect('boutique:cart')
+        
+        try:
+            # Créer une commande à partir du panier
+            order = Order.objects.create(
+                user=request.user if request.user.is_authenticated else None,
+                status='pending',
+                payment_method=payment_method,
+                payment_status='pending',
+                total=cart.get_total(),
+                phone_number=phone_number
+            )
+            
+            # Ajouter les articles de la commande
+            for item in cart.items.all():
+                OrderItem.objects.create(
+                    order=order,
+                    product=item.product,
+                    price=item.product.price,
+                    quantity=item.quantity,
+                    total=item.get_total_price()
+                )
+            
+            # Vider le panier
+            cart.items.all().delete()
+            
+            if is_ajax:
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Commande passée avec succès!',
+                    'redirect_url': reverse('boutique:payment_success', kwargs={'order_id': order.id})
+                })
+                
+            # Rediriger vers la page de confirmation pour les requêtes non-AJAX
+            messages.success(request, f"Votre commande a été passée avec succès! Numéro de commande: {order.id}")
+            return redirect('boutique:payment_success', order_id=order.id)
+            
+        except Exception as e:
+            error_message = f"Une erreur est survenue lors du traitement de votre commande: {str(e)}"
+            if is_ajax:
+                return JsonResponse({
+                    'success': False,
+                    'message': error_message
+                }, status=500)
+                
+            messages.error(request, error_message)
+            return redirect('boutique:cart')
+    
+    # Si la méthode n'est pas POST, rediriger vers le panier
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({
+            'success': False,
+            'message': 'Méthode non autorisée.'
+        }, status=405)
+        
+    return redirect('boutique:cart')

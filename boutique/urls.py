@@ -32,6 +32,7 @@ urlpatterns = [
     path('panier/vider/', views.clear_cart, name='clear_cart'),
     
     # Paiement
+    path('paiement/process/', views.process_payment, name='process_payment'),
     path('paiement/checkout/', views.CheckoutView.as_view(), name='checkout'),
     path('paiement/<uuid:order_id>/', views.PaymentView.as_view(), name='payment'),
     path('paiement/succes/<uuid:order_id>/', views.PaymentSuccessView.as_view(), name='payment_success'),

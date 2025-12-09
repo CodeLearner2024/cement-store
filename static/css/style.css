@@ -23,6 +23,25 @@ body {
 .navbar {
     box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
     padding: 0.5rem 0;
+    transition: transform 0.3s ease-in-out;
+    position: fixed;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 1030;
+    background-color: #3B5998 !important; /* Couleur de fond du header */
+    width: 100%;
+}
+
+/* Classe pour cacher le header lors du défilement vers le bas */
+.navbar.hide {
+    transform: translateY(-100%);
+}
+
+/* Ajout d'un espace pour compenser le header fixe */
+body {
+    padding-top: 76px; /* Hauteur du header + padding */
+    min-height: 100vh;
 }
 
 .navbar-brand {

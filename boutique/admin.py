@@ -11,20 +11,42 @@ from .admin_views_custom import CustomProductCreateView
 
 
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'slug', 'image_preview', 'created_at', 'updated_at')
-    list_filter = ('created_at', 'updated_at')
+    list_display = ('name', 'slug', 'stock_status_display', 'stock_quantity', 'image_preview', 'created_at', 'updated_at')
+    list_filter = ('stock_status', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
     prepopulated_fields = {'slug': ('name',)}
     fieldsets = (
         (None, {
             'fields': ('name', 'slug', 'description')
         }),
+        ('Gestion du stock', {
+            'fields': (
+                'manage_stock',
+                'stock_quantity',
+                'low_stock_threshold',
+                'backorder_allowed',
+                'stock_status'
+            ),
+            'classes': ('collapse', 'wide')
+        }),
         ('Image', {
             'fields': ('image', 'image_preview'),
             'classes': ('collapse', 'wide')
         }),
     )
-    readonly_fields = ('image_preview',)
+    readonly_fields = ('image_preview', 'stock_status')
+    
+    def stock_status_display(self, obj):
+        status_display = dict(obj._meta.get_field('stock_status').flatchoices).get(
+            obj.stock_status, obj.stock_status
+        )
+        if obj.stock_status == 'in_stock':
+            return format_html('<span style="color: green;">{}</span>', status_display)
+        elif obj.stock_status == 'low_stock':
+            return format_html('<span style="color: orange;">{}</span>', status_display)
+        else:
+            return format_html('<span style="color: red;">{}</span>', status_display)
+    stock_status_display.short_description = 'État du stock'
 
     def image_preview(self, obj):
         if obj.image:

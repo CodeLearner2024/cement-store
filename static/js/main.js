@@ -1,5 +1,33 @@
+// Gestion du header fixe au défilement
+let lastScroll = 0;
+const navbar = document.querySelector('.navbar');
+const navbarHeight = navbar ? navbar.offsetHeight : 0;
+const SCROLL_THRESHOLD = 100; // Seuil de défilement pour afficher/cacher le header
+
+// Fonction pour gérer le défilement
+function handleScroll() {
+    if (!navbar) return;
+    
+    const currentScroll = window.pageYOffset;
+    
+    // Si on descend et qu'on a dépassé le seuil
+    if (currentScroll > lastScroll && currentScroll > SCROLL_THRESHOLD) {
+        // On cache le header
+        navbar.classList.add('hide');
+    } else if (currentScroll < lastScroll) {
+        // On remonte, on affiche le header
+        navbar.classList.remove('hide');
+    }
+    
+    lastScroll = currentScroll;
+}
+
 // Attendre que le DOM soit complètement chargé
 document.addEventListener('DOMContentLoaded', function() {
+    // Ajouter l'écouteur d'événement de défilement
+    if (navbar) {
+        window.addEventListener('scroll', handleScroll, { passive: true });
+    }
     // Activer les tooltips Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {

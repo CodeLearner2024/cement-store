@@ -39,10 +39,10 @@
         <div class="d-md-none small text-muted">Prix unitaire</div>
         <div>
             {% if item.get_discounted_price < item.product.price %}
-                <span class="text-danger">{{ item.get_discounted_price }} €</span>
-                <small class="text-decoration-line-through text-muted d-block">{{ item.product.price }} €</small>
+                <span class="text-danger">{{ item.get_discounted_price }} BIF</span>
+                <small class="text-decoration-line-through text-muted d-block">{{ item.product.price }} BIF</small>
             {% else %}
-                {{ item.product.price }} €
+                {{ item.product.price }} BIF
             {% endif %}
         </div>
     </div>
@@ -76,7 +76,7 @@
     <!-- Prix total -->
     <div class="col-md-2 text-end">
         <div class="d-md-none small text-muted">Total</div>
-        <strong class="item-total">{{ item.total_price }} €</strong>
+        <strong class="item-total">{{ item.total_price }} BIF</strong>
     </div>
 </div>
 {% endfor %}

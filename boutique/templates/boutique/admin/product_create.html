@@ -331,22 +331,6 @@
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label" for="{{ form.slug.id_for_label }}">
-                                URL personnalisée
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text">
-                                    {{ request.scheme }}://{{ request.get_host }}/produit/
-                                </span>
-                                {{ form.slug }}
-                            </div>
-                            <small class="form-text text-muted">
-                                Laissez vide pour générer automatiquement à partir du nom du produit.
-                            </small>
-                            {{ form.slug.errors }}
-                        </div>
-                        
-                        <div class="form-group">
                             <label class="form-label" for="{{ form.description.id_for_label }}">
                                 Description
                             </label>
@@ -365,27 +349,28 @@
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label" for="{{ form.sku.id_for_label }}">
-                                Référence (SKU)
+                            <label class="form-label" for="{{ form.slug.id_for_label }}">
+                                URL personnalisée <span class="text-danger">*</span>
                             </label>
-                            {{ form.sku }}
-                            {{ form.sku.errors }}
+                            {{ form.slug }}
+                            {{ form.slug.errors }}
+                            <small class="form-text text-muted">Laissez vide pour générer automatiquement à partir du nom</small>
                         </div>
                         
                         <div class="form-group">
                             <label class="form-label" for="{{ form.price.id_for_label }}">
-                                Prix (€) <span class="text-danger">*</span>
+                                Prix (Fbu) <span class="text-danger">*</span>
                             </label>
                             {{ form.price }}
                             {{ form.price.errors }}
                         </div>
                         
                         <div class="form-group">
-                            <label class="form-label" for="{{ form.stock_quantity.id_for_label }}">
+                            <label class="form-label" for="{{ form.stock.id_for_label }}">
                                 Quantité en stock
                             </label>
-                            {{ form.stock_quantity }}
-                            {{ form.stock_quantity.errors }}
+                            {{ form.stock }}
+                            {{ form.stock.errors }}
                         </div>
                         
                         <div class="form-group form-check">
@@ -423,89 +408,7 @@
                 </div>
             </div>
         </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-tags"></i> Mots-clés et référencement
-                </h2>
-            </div>
-            <div class="card-body">
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.meta_title.id_for_label }}">
-                        Méta-titre (pour le référencement)
-                    </label>
-                    {{ form.meta_title }}
-                    <small class="form-text text-muted">
-                        Maximum 60 caractères. <span id="meta-title-count">0</span>/60
-                    </small>
-                    {{ form.meta_title.errors }}
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.meta_description.id_for_label }}">
-                        Méta-description (pour le référencement)
-                    </label>
-                    {{ form.meta_description }}
-                    <small class="form-text text-muted">
-                        Maximum 160 caractères. <span id="meta-desc-count">0</span>/160
-                    </small>
-                    {{ form.meta_description.errors }}
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.tags.id_for_label }}">
-                        Mots-clés
-                    </label>
-                    {{ form.tags }}
-                    <small class="form-text text-muted">
-                        Séparez les mots-clés par des virgules.
-                    </small>
-                    {{ form.tags.errors }}
-                </div>
-            </div>
-        </div>
-        
-        <div class="card">
-            <div class="card-header">
-                <h2 class="card-title">
-                    <i class="fas fa-cog"></i> Options avancées
-                </h2>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="{{ form.weight.id_for_label }}">
-                                Poids (kg)
-                            </label>
-                            {{ form.weight }}
-                            {{ form.weight.errors }}
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label class="form-label" for="{{ form.dimensions.id_for_label }}">
-                                Dimensions (L x l x H en cm)
-                            </label>
-                            {{ form.dimensions }}
-                            {{ form.dimensions.errors }}
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label class="form-label" for="{{ form.additional_info.id_for_label }}">
-                        Informations complémentaires
-                    </label>
-                    {{ form.additional_info }}
-                    <small class="form-text text-muted">
-                        Ces informations seront affichées dans un onglet supplémentaire sur la fiche produit.
-                    </small>
-                    {{ form.additional_info.errors }}
-                </div>
-            </div>
-        </div>
+
         
         <div class="form-actions">
             <a href="{% url 'boutique:admin_product_list' %}" class="btn btn-secondary">
@@ -536,7 +439,7 @@ $(document).ready(function() {
         width: '100%'
     });
     
-    // Initialisation de CKEditor pour les champs de texte enrichi
+    // Initialisation de CKEditor pour les champs de texte riche
     if (typeof CKEDITOR !== 'undefined') {
         CKEDITOR.replace('id_description', {
             toolbar: [
@@ -560,6 +463,73 @@ $(document).ready(function() {
                 { name: 'styles', items: ['Styles', 'Format'] },
                 { name: 'tools', items: ['Maximize'] }
             ],
+            height: 200
+        });
+    }
+    
+    // Gestion de la soumission du formulaire
+    $('#product-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        // Désactive les boutons pour éviter les soumissions multiples
+        var $submitButton = $('button[type="submit"]');
+        var originalButtonText = $submitButton.html();
+        $submitButton.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Enregistrement...');
+        
+        // Mise à jour des champs CKEditor avant la soumission
+        if (typeof CKEDITOR !== 'undefined') {
+            for (var instance in CKEDITOR.instances) {
+                CKEDITOR.instances[instance].updateElement();
+            }
+        }
+        
+        // Soumission AJAX du formulaire
+        var formData = new FormData(this);
+        
+        // Ajouter le token CSRF manuellement
+        var csrftoken = $('[name=csrfmiddlewaretoken]').val();
+        if (csrftoken) {
+            formData.append('csrfmiddlewaretoken', csrftoken);
+        }
+        
+        $.ajax({
+            type: 'POST',
+            url: window.location.pathname,
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                try {
+                    var data = typeof response === 'string' ? JSON.parse(response) : response;
+                    if (data.redirect) {
+                        window.location.href = data.redirect;
+                    } else if (data.success) {
+                        window.location.reload();
+                    } else if (data.errors) {
+                        alert('Erreur de validation : ' + JSON.stringify(data.errors));
+                        $submitButton.prop('disabled', false).html(originalButtonText);
+                    }
+                } catch (e) {
+                    console.error('Erreur lors du traitement de la réponse :', e);
+                    window.location.reload();
+                }
+            },
+            error: function(xhr) {
+                try {
+                    var errorData = JSON.parse(xhr.responseText);
+                    alert('Erreur : ' + (errorData.message || 'Une erreur est survenue'));
+                } catch (e) {
+                    alert('Une erreur est survenue lors de l\'enregistrement du produit.');
+                }
+                $submitButton.prop('disabled', false).html(originalButtonText);
+            }
+        });
+        
+        return false;
+    });
+});
+</script>
+{% endblock %}
             height: 200
         });
     }
